@@ -33,9 +33,9 @@ AW31N系列通用蓝牙SDK 固件程序
 
 * 芯片简介 : [SoC 数据手册扼要](https://doc.zh-jieli.com/vue/#/docs/aw31n), [下载链接](./doc/AW31N_规格书)
 
-* 应用设计原理图参考 : [下载链接](./doc/AW31N_原理图)
+* 应用设计原理图参考 : [下载链接](https://doc.zh-jieli.com/AW31/zh-cn/master/other/version/index.html)
 
-* SDK 版本信息 : [SDK 历史版本](./doc/AW31N_sdk_发布版本信息.pdf)
+* SDK 版本信息 : [SDK 历史版本](https://doc.zh-jieli.com/AW31/zh-cn/master/other/version/index.html)
 
 * SDK 介绍文档 : [SDK 快速开始简介](https://doc.zh-jieli.com/AW31/zh-cn/master/getting_started/preparation/index.html)
 

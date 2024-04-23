@@ -35,7 +35,7 @@ Introduction Documents
 
 * Application design schematic：[下载链接](./doc/AW31N_原理图)
 
-* SDK Version Information: [SDK Version History](./doc/AW31N_sdk_发布版本信息.pdf)
+* SDK Version Information: [SDK Version History](https://doc.zh-jieli.com/AW31/zh-cn/master/other/version/index.html)
 
 * SDK Quick Start Guide: [SDK Quick Start Introduction](https://doc.zh-jieli.com/AW31/zh-cn/master/getting_started/preparation/index.html)
 
