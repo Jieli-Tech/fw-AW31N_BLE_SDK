@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_workspace_file>
+	<Workspace title="Workspace">
+		<Project filename="apps/demo/transfer/board/bd47/AW31N_transfer.cbp" />
+		<Project filename="apps/demo/hid/board/bd47/AW31N_hid.cbp" />
+	</Workspace>
+</CodeBlocks_workspace_file>

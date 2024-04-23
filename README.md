@@ -31,9 +31,11 @@ AW31N系列通用蓝牙SDK 固件程序
 介绍文档
 ------------
 
-* 芯片简介 : [SoC 数据手册扼要](https://doc.zh-jieli.com/vue/#/docs/aw31n), [下载链接](./doc)
+* 芯片简介 : [SoC 数据手册扼要](https://doc.zh-jieli.com/vue/#/docs/aw31n), [下载链接](./doc/AW31N_规格书)
 
-* SDK 版本信息 : [SDK 历史版本](./AW31N_sdk_发布版本信息.pdf)
+* 应用设计原理图参考 : [下载链接](./doc/AW31N_原理图)
+
+* SDK 版本信息 : [SDK 历史版本](./doc/AW31N_sdk_发布版本信息.pdf)
 
 * SDK 介绍文档 : [SDK 快速开始简介](https://doc.zh-jieli.com/AW31/zh-cn/master/getting_started/preparation/index.html)
 
@@ -65,7 +67,7 @@ SDK 同时支持Codeblock 和 Make 编译环境，请确保编译前已经搭建
 蓝牙官方认证
 -------------
 
-经典蓝牙LMP / 低功耗蓝牙Link Layer 层和Host 协议栈均支持5.4版本实现
+低功耗蓝牙Link Layer 层和Host 协议栈均支持5.4版本实现
 
 * Core v5.4 [QDID 223418](https://launchstudio.bluetooth.com/ListingDetails/193923)
 
@@ -75,7 +77,7 @@ SDK 同时支持Codeblock 和 Make 编译环境，请确保编译前已经搭建
 
 * 开发评估板 ：开发板申请入口：敬请期待
 
-* 生产烧写工具 : 为量产和裸片烧写而设计, 申请入口 [链接](https://item.taobao.com/item.htm?spm=a1z10.1-c-s.w4004-22883854875.8.504d246bXKwyeH&id=620941819219) 并仔细阅读相关 [文档](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/burner_1tuo2/index.html)
+* 生产烧写工具 : 为量产和裸片烧写而设计,工具需联系代理商获取，使用前请仔细阅读相关 [文档](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/burner_1tuo2/index.html)
 
 * 无线测试盒 : 为空中升级/射频标定/快速产品测试而设计, 申请入口 [链接](https://item.taobao.com/item.htm?spm=a1z10.1-c-s.w4004-22883854875.10.504d246bXKwyeH&id=620942507511), 阅读[文档](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/testbox_1tuo2/index.html) 获取更多详细信息.
 

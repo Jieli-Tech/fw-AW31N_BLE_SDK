@@ -31,9 +31,11 @@ To learn how to obtain the 'Jieli Toolchain' and how to set up the environment, 
 Introduction Documents
 ------------
 
-* Chip Introduction: [SoC Overview](https://doc.zh-jieli.com/vue/#/docs/aw31n), [Download Link](./doc)
+* Chip Introduction: [SoC Overview](https://doc.zh-jieli.com/vue/#/docs/aw31n), [Download Link](./doc/AW31N_规格书)
 
-* SDK Version Information: [SDK Version History](./AW31N_sdk_发布版本信息.pdf)
+* Application design schematic：[下载链接](./doc/AW31N_原理图)
+
+* SDK Version Information: [SDK Version History](./doc/AW31N_sdk_发布版本信息.pdf)
 
 * SDK Quick Start Guide: [SDK Quick Start Introduction](https://doc.zh-jieli.com/AW31/zh-cn/master/getting_started/preparation/index.html)
 
@@ -66,7 +68,7 @@ The SDK support Codeblock & Make to build to project,make sure you already setup
 Bluetooth Official Certification
 -------------
 
-Classic Bluetooth LMP / Low Power Bluetooth Link Layer and Host Protocol Stack support the implementation of version 5.4
+Low Power Bluetooth Link Layer and Host Protocol Stack support the implementation of version 5.4
 
 * Core v5.4 [QDID 223418](https://launchstudio.bluetooth.com/ListingDetails/193923) 
 
@@ -76,7 +78,7 @@ Hardware Environment
 
 * Development Evaluation Board: Entrance for development board application [Link](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/burner_1tuo2/index.html)
 
-* Production Burning Tools: Designed for mass production and bare chip programming, application entrance [Link](https://item.taobao.com/item.htm?spm=a1z10.1-c-s.w4004-22883854875.8.504d246bXKwyeH&id=620941819219) and carefully read the related [Documentation](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/burner_1tuo2/index.html) 
+* Production Burning Tools: Designed for mass production and bare chip programming, Contact agent and carefully read the related [Documentation](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/burner_1tuo2/index.html) 
 
 * Wireless Test Box: Designed for Over-The-Air updating/RF calibration/quick product testing, application entrance [Link](https://item.taobao.com/item.htm?spm=a1z10.1-c-s.w4004-22883854875.10.504d246bXKwyeH&id=620942507511), read the [Documentation](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/testbox_1tuo2/index.html) for more details.
 
