@@ -33,7 +33,7 @@ Introduction Documents
 
 * Chip Introduction: [SoC Overview](https://doc.zh-jieli.com/vue/#/docs/aw31n), [Download Link](./doc/AW31N_规格书)
 
-* Application design schematic：[下载链接](./doc/AW31N_原理图)
+* Application design schematic：[Download Link](./doc/AW31N_原理图)
 
 * SDK Version Information: [SDK Version History](https://doc.zh-jieli.com/AW31/zh-cn/master/other/version/index.html)
 
