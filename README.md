@@ -75,7 +75,7 @@ SDK 同时支持Codeblock 和 Make 编译环境，请确保编译前已经搭建
 硬件环境
 -------------
 
-* 开发评估板 ：开发板申请入口：敬请期待
+* 开发评估板 ：开发板申请入口： [链接](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-22878283450.9.74013aa9I0MQZb&id=817701311470&skuId=5687013814892)
 
 * 生产烧写工具 : 为量产和裸片烧写而设计,工具需联系代理商获取，使用前请仔细阅读相关 [文档](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/burner_1tuo2/index.html)
 
