@@ -171,7 +171,7 @@ void bt_ble_init(void)
 
 #if CONFIG_BT_GATT_CLIENT_NUM
     // 默认scan不开低功耗
-    multi_state_idle_set_active(1);
+    /* multi_state_idle_set_active(1); */
     multi_client_init();
 
 #if CFG_USE_24G_CODE_ID_SCAN

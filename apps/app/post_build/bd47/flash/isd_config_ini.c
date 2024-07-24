@@ -7,6 +7,10 @@ PID = AW31N; //长度16byte,示例：芯片封装_应用方向_方案名称
 VID = 0.01;
 RESERVED_OPT = 0;
 
+#if CONFIG_ONLY_GRENERATE_ALIGN_4K_CODE
+FORCE_4K_ALIGN = YES; // force aligin with 4k bytes
+#endif
+
 /* #DOWNLOAD_MODEL=SERIAL; */
 DOWNLOAD_MODEL = usb;
 SERIAL_DEVICE_NAME = JlVirtualJtagSerial;
@@ -57,7 +61,7 @@ UTRX = PA00;
 /* #sdtap=2; */
 
 [FW_ADDITIONAL]
-#if UPDATE_V2_EN
+#if UPDATE_V2_EN || CONFIG_APP_OTA_EN
 FILE_LIST = (file = ota.bin: type = 100)
 #endif
             /* ############################################################################################################################################# */
@@ -92,14 +96,36 @@ BTIF_OPT = 1;
 /* #PRCT_LEN=8K; */
 /* #PRCT_OPT=2; */
 
-VM_ADR = AUTO;
+/*vm存放升级loader等,VM_ADR设为0则可根据代码剩余空间配置大小,而不是LEN配置*/
+//VM_ADR = AUTO;
+VM_ADR = 0;
 VM_LEN = 8K;
 VM_OPT = 1;
 
+/*系统syscfg vm区域定义的大小 */
 EEPROM_ADR = AUTO;
 EEPROM_LEN = 8K;
 EEPROM_OPT = 1;
 
+/*手机OTA升级,传参递给loader; */
+#if CONFIG_APP_OTA_EN
+EXIF_ADR = AUTO;
+EXIF_LEN = 4K;
+EXIF_OPT = 1;
+#endif
+
 [BURNER_CONFIG]
 SIZE = 32;
+
+[BURNER_OPTIONS]
+#if TCFG_CLOCK_OSC_1PIN_EN
+XOSC_PIN_MODE = single
+#else
+XOSC_PIN_MODE = double
+#endif
+
+                [TOOL_CONFIG]
+                1TO2_MIN_VER = 2.27.9;
+1TO8_MIN_VER = 3.1.24;
+
 

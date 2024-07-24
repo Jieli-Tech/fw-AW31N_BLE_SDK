@@ -1,6 +1,8 @@
 #ifndef _COMMON_
 #define _COMMON_
 
+#include "assert_d.h"
+
 #define get_random()	JL_RAND->R64L
 
 void system_enter_critical(void);

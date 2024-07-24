@@ -21,15 +21,20 @@
 #define     IAP_STR_INDEX               7
 
 ///////////HID class
-#define     HID_EP_IN                   2
+#define     HID_MEDIA_EP_IN                   2
+#define     HID_MEDIA_EP_OUT                  0  //不定义ep out
+#define     HID_MEDIA_EP_IN_MAX_SIZE          8
+#define     HID_MEDIA_EP_OUT_MAX_SIZE         8
 
-#define     HID_EP_OUT                  0  //不定义ep out
+#define     HID_MOUSE_EP_IN                   2
+#define     HID_MOUSE_EP_OUT                  0  //不定义ep out
+#define     HID_MOUSE_EP_IN_MAX_SIZE          8
+#define     HID_MOUSE_EP_OUT_MAX_SIZE         8
 
-#define     MAXP_SIZE_HIDOUT            8
-#define     MAXP_SIZE_HIDIN             8
-/* #define     MAXP_SIZE_HIDOUT            64 */
-/* #define     MAXP_SIZE_HIDIN             64 */
-
+#define     HID_KEYBOARD_EP_IN                2
+#define     HID_KEYBOARD_EP_OUT               0  //不定义ep out
+#define     HID_KEYBOARD_EP_IN_MAX_SIZE       64
+#define     HID_KEYBOARD_EP_OUT_MAX_SIZE      64
 
 
 /////////////Audio Class

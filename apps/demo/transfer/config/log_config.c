@@ -48,6 +48,11 @@ const char log_tag_const_d_SYS_TMR AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_e_SYS_TMR AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(1);
 const char log_tag_const_c_SYS_TMR AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(1);
 
+const char log_tag_const_i_GPTIMER AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_d_GPTIMER AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_e_GPTIMER AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(1);
+const char log_tag_const_c_GPTIMER AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(1);
+
 const char log_tag_const_i_OFF AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_d_OFF AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_e_OFF AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(0);

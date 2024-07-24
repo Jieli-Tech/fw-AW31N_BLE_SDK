@@ -13,42 +13,6 @@
 
 #if KEY_AD_EN
 
-#define EXTERN_R_UP     100//220 -> 22k,外挂上拉电阻,0使用内部上拉,内部上拉为10k
-
-#if EXTERN_R_UP
-#define R_UP       EXTERN_R_UP
-#else
-#define R_UP       100    //内部上拉为10K，有20%误差
-#endif
-
-#if (ADC_SAMPLE_BITS == 12)
-#define ADC10_33   (0xfffL)
-#else
-#define ADC10_33   (0x3ffL)
-#endif
-
-#define ADC10_30   (ADC10_33 * 1000   / (1000 + R_UP))     //100K
-#define ADC10_27   (ADC10_33 * 510    / (510  + R_UP))     //51K
-#define ADC10_23   (ADC10_33 * 240    / (240  + R_UP))     //24K
-#define ADC10_20   (ADC10_33 * 150    / (150  + R_UP))     //15K
-#define ADC10_17   (ADC10_33 * 100    / (100  + R_UP))     //10K
-#define ADC10_13   (ADC10_33 * 68     / (68   + R_UP))     //6.8K
-#define ADC10_10   (ADC10_33 * 47     / (47   + R_UP))     //4.7K
-#define ADC10_07   (ADC10_33 * 22     / (22   + R_UP))     //2.2K
-#define ADC10_04   (ADC10_33 * 10     / (10   + R_UP))     //1K
-#define ADC10_00   (0)
-
-#define AD_NOKEY        ((ADC10_33 + ADC10_30) / 2)
-#define ADKEY1_0		((ADC10_30 + ADC10_27) / 2)
-#define ADKEY1_1		((ADC10_27 + ADC10_23) / 2)
-#define ADKEY1_2		((ADC10_23 + ADC10_20) / 2)
-#define ADKEY1_3		((ADC10_20 + ADC10_17) / 2)
-#define ADKEY1_4		((ADC10_17 + ADC10_13) / 2)
-#define ADKEY1_5		((ADC10_13 + ADC10_10) / 2)
-#define ADKEY1_6		((ADC10_10 + ADC10_07) / 2)
-#define ADKEY1_7		((ADC10_07 + ADC10_04) / 2)
-#define ADKEY1_8		((ADC10_04 + ADC10_00) / 2)
-
 const uint16_t ad_key_table[] = {
     ADKEY1_8, ADKEY1_7, ADKEY1_6, ADKEY1_5, ADKEY1_4,
     ADKEY1_3, ADKEY1_2, ADKEY1_1, ADKEY1_0

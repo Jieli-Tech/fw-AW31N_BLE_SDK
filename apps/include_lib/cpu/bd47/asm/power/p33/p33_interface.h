@@ -22,6 +22,7 @@ extern void p33_and_1byte(u16 addr, u32 data0);
 extern void p33_or_1byte(u16 addr, u32 data0);
 extern void p33_tx_1byte(u16 addr, u32 data0);
 extern u8 p33_rx_1byte(u16 addr);
+extern void p33_rx_nbyte(u16 addr, u8 *buf_ptr, u8 len);
 extern void p33_tx_1byte_fast(u16 addr, u32 data0);
 extern void P33_CON_SET(u16 addr, u8 start, u8 len, u8 data);
 

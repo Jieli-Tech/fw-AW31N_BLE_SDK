@@ -53,7 +53,7 @@ AW31N系列通用蓝牙SDK 固件程序
 
 即将发布：
 
-* 蓝牙应用 ：`Dongle + Mouse（1K）`
+* 蓝牙应用 ：`Multi-Link`
 
 
 SDK 同时支持Codeblock 和 Make 编译环境，请确保编译前已经搭建好编译环境，

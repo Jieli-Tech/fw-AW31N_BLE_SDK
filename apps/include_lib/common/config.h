@@ -35,7 +35,7 @@ extern const char libs_debug;
 #define set_ie              bit_set_ie
 #define clear_ie            bit_clr_ie
 
-#define TRIGGER()           __asm__ volatile ("trigger")
+//#define TRIGGER()           __asm__ volatile ("trigger")
 
 
 #ifdef D_IS_FLASH_SYSTEM

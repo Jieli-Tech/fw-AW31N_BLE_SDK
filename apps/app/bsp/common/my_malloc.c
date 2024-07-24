@@ -8,8 +8,6 @@
 
 #include "app_config.h"
 #include "my_malloc.h"
-#include "btcontroller_heap.h"
-
 
 #define LOG_TAG_CONST       HEAP
 #define LOG_TAG             "[malloc]"
@@ -27,10 +25,13 @@
 /* } */
 
 const u16 configHEAP_BEST_SIZE = 100;
+void mem_printf(void);
 
-/* extern void *__bt_malloc(int size); */
 void *my_malloc(u32 size, mm_type xType)
 {
+    u32 rets;
+    __asm__ volatile("%0 = rets" : "=r"(rets));
+
 #if MY_MALLOC_SELECT
     void *res;
     /* return pvPortMalloc(size); */
@@ -40,9 +41,13 @@ void *my_malloc(u32 size, mm_type xType)
         memset(res, 0, size);
 #if MALLOC_INFO_PRINTF
         mem_malloc_info_printf((u32)res, size, xType);
+        mem_printf();
 #endif
     } else {
-        log_info(" err malloc empty, size 0x%x,type 0x%x\n", size, xType);
+#if MALLOC_INFO_PRINTF
+        mem_printf();
+#endif
+        ASSERT(0, "err malloc empty(0x%x), size 0x%x,type 0x%x\n,rets  0x%x\n", my_get_free_size(), size, xType, rets);
     }
     return res;
 #else
@@ -65,20 +70,29 @@ void *my_free(void *pv)
     return NULL;
 }
 
-
-extern const u8 _free_start[];
-extern const u8 _free_end[];
+int my_get_free_size(void)
+{
+#if MY_MALLOC_SELECT
+    return xPortGetFreeHeapSize();
+#else
+    return __bt_get_free_size();
+#endif
+}
 
 void my_malloc_init(void)
 {
 #if MY_MALLOC_SELECT
     u32 len = (u32)&_free_end[0] - (u32)&_free_start[0]  + 1;
     log_info(" HEAP----: 0x%x; 0x%x\n", (u32)&_free_end[0], (u32)&_free_start[0]);
+    ASSERT(len >= 512, "my_malloc limit >=512");
     memset((void *)&_free_start[0], 0, len);
     vPortInit((void *)&_free_start[0], len);
 #else
 #endif
-    btctler_nv_memory_apply();//全部的malloc放到my_malloc初始化
+
+#if TCFG_USER_BLE_ENABLE
+    btctler_nv_memory_apply();//BT malloc放到my_malloc初始化
+#endif
 }
 
 void xTaskResumeAll(void)

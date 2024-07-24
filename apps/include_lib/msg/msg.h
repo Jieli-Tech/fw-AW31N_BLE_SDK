@@ -235,6 +235,9 @@ enum {
     MSG_BLE_TESTBOX_UPDATE_START,   /*蓝牙测试盒BLE升级*/
     MSG_BLE_APP_UPDATE_START,       /*APP_BLE升级*/
     MSG_UART_TESTBOX_UPDATE_START, /*蓝牙测试盒UART升级*/
+
+    MSG_TYPE_EVENT, // 事件消息
+
     MSG_COMMON_MAX,//common最大消息
     NO_MSG = 0x0fff,
 };
@@ -258,7 +261,7 @@ enum {
 #define MSG_TYPE_BIT_LEN        12
 #define MSG_PARAM_BIT_LEN       (MSG_HEADER_BYTE_LEN*8-MSG_TYPE_BIT_LEN)
 
-#define MAX_POOL			128
+#define MAX_POOL		    128
 
 #define NO_EVENT			0xffff
 
@@ -322,7 +325,9 @@ void clear_all_message(void);
 void message_init();
 bool has_sys_event(void);
 
-
+struct sys_event *event_pool_alloc();
+void event_pool_free(struct sys_event *event_ptr);
+void event_pool_init();
 #endif
 
 

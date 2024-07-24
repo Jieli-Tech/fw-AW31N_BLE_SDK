@@ -203,7 +203,7 @@ struct uart_config {
 
 struct uart_dma_config {
     cbuffer_t cbuf;
-    u32 rx_timeout_thresh;//us
+    u32 rx_timeout_thresh; //单位:us,公式：3*10000000/baud_rate(ot:3个byte时间)
     u32 frame_size;//一般配置=rx_cbuffer_size
 
     u32 rx_cbuffer_size;

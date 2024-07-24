@@ -50,6 +50,7 @@ struct key_driver_para {
     uint8_t notify_value;  		//在延时的待发送按键值
 };
 
+#define KEY_PRESS_CNT   35
 #define NO_KEY          0xff
 
 typedef struct {
@@ -78,4 +79,6 @@ void key_init(void);
 void key_scan();
 void key_driver_scan(void *_scan_para);
 void key_active_set(P33_IO_WKUP_EDGE edge);
+void key_active_num_set(u8 key_active);
+
 #endif

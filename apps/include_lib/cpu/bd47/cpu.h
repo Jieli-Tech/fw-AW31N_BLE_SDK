@@ -7,6 +7,7 @@
 #include "typedef.h"
 #include "csfr.h"
 #include <stdarg.h>
+#include "assert_d.h"
 
 #ifndef __ASSEMBLY__
 #define _G_va_list __gnuc_va_list
@@ -96,11 +97,24 @@ static inline void cpu_reset(void)
 
 extern void __local_irq_disable();
 extern void __local_irq_enable();
+extern void __local_irq_disable_hook(void);
+extern void __local_irq_enable_hook(void);
+
 extern void chip_reset();
 extern int printf(const char *format, ...);
+extern const int config_asser;
 
-#define local_irq_disable __local_irq_disable
-#define local_irq_enable  __local_irq_enable
+#define IRQ_HOOK_ENALBE    0
+
+#if IRQ_HOOK_ENALBE
+#define local_irq_disable  __local_irq_disable_hook
+#define local_irq_enable   __local_irq_enable_hook
+#else
+#define local_irq_disable  __local_irq_disable
+#define local_irq_enable   __local_irq_enable
+#endif
+
+
 
 #define	CPU_SR_ALLOC() 	\
 
@@ -115,21 +129,28 @@ extern int printf(const char *format, ...);
 
 #define CPU_CRITICAL_EXIT()  local_irq_enable()
 
-
+/*
 #define ASSERT(a,...)   \
-		do { \
-            if(!(a)){ \
+    do { \
+        if(!(a)){ \
+            if(config_asser){\
                 printf("file:%s, line:%d", __FILE__, __LINE__); \
                 printf("ASSERT-FAILD: "#a" "__VA_ARGS__); \
+                local_irq_disable();\
+                while (1);\
+            }\
+            else{\
                 chip_reset(); \
-            } \
-		}while(0);
+            }\
+        } \
+    }while(0);
 
+*/
 #define arch_atomic_read(v)  \
-	({ \
-        __asm_csync(); \
-		(*(volatile int *)&(v)->counter); \
-	 })
+    ({ \
+     __asm_csync(); \
+     (*(volatile int *)&(v)->counter); \
+     })
 
 #endif //__ASSEMBLY__
 

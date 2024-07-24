@@ -65,6 +65,17 @@ void btstack_ble_start_before_init(const ble_init_cfg_t *cfg, int param)
 {
     u8 tmp_ble_addr[6];
 
+    if (TCFG_NORMAL_SET_DUT_MODE || BT_MODE_IS(BT_BQB) || BT_MODE_IS(BT_FCC) || BT_MODE_IS(BT_FRE)) {
+        //bt test mode
+        clk_set("sfc", TCFG_CLOCK_DUT_SFC_HZ);
+        if (TCFG_NORMAL_SET_DUT_MODE) {
+            user_sele_dut_mode(1);//设置dut mode
+        }
+        return ;
+    } else {
+    }
+
+
     if (!cfg) {
         cfg = &ble_default_config;
     }
@@ -102,13 +113,8 @@ void btstack_ble_start_before_init(const ble_init_cfg_t *cfg, int param)
 /*************************************************************************************************/
 void btstack_ble_start_after_init(int param)
 {
-    if (BT_MODE_IS(BT_BQB)) {
-        void ble_bqb_test_thread_init(void);
-        ble_bqb_test_thread_init();
-    } else {
-        extern void bt_ble_init(void);
-        bt_ble_init();
-    }
+    extern void bt_ble_init(void);
+    bt_ble_init();
 }
 
 /*************************************************************************************************/

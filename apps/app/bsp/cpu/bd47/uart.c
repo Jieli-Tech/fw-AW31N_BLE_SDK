@@ -23,9 +23,9 @@
 #if DEBUG_UART_DMA_EN
 #define     MAX_DEBUG_FIFO  256
 static u8 debug_uart_buf[2][MAX_DEBUG_FIFO];
-static u32 tx_jiffies = 0;
-static u16 pos = 0;
-static u8 uart_buffer_index = 0;
+static u32 tx_jiffies;
+static u16 pos;
+static u8 uart_buffer_index;
 
 static void uart_irq(uart_dev uart_num, enum uart_event event)
 {

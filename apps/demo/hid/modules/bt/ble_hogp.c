@@ -22,9 +22,9 @@
  */
 // *****************************************************************************
 #include "includes.h"
-
 #include "app_config.h"
 #include "app_action.h"
+#include "custom_cfg.h"
 
 #include "bt_include/btstack_task.h"
 #include "bt_include/bluetooth.h"
@@ -32,10 +32,8 @@
 #include "vm.h"
 #include "btcontroller_modules.h"
 /* #include "bt_common.h" */
-
 /* #include "le_common.h" */
 #include "standard_hid.h"
-
 #if RCSP_BTMATE_EN
 #include "rcsp_bluetooth.h"
 #include "JL_rcsp_api.h"
@@ -47,18 +45,16 @@
 #include "app_comm_bt.h"
 #include "app_config.h"
 #include "sys_timer.h"
+#include "msg.h"
+#include "app_main.h"
 /* #include "vble_complete.h" */
 
 #if (TCFG_USER_BLE_ENABLE)
 #if CONFIG_HOGP_COMMON_ENABLE
-#if RCSP_BTMATE_EN
-/* #include "btstack/JL_rcsp_api.h" */
-#include "rcsp_bluetooth.h"
-#endif
 
 #define TEST_AUDIO_DATA_UPLOAD       0 //测试文件上传
 
-#if 1//LE_DEBUG_PRINT_EN
+#ifdef CONFIG_DEBUG_ENABLE
 //#define log_info            y_printf
 #define log_info(x, ...)  printf("[BLE_HOGP]" x " ", ## __VA_ARGS__)
 #define log_info_hexdump  printf_buf
@@ -102,6 +98,10 @@ int ble_hid_timer_handle = 0;
 
 //是否使能参数请求更新,0--disable, 1--enable
 static uint8_t hogp_connection_update_enable = 1;
+
+#if CONFIG_APP_MOUSE_DUAL || CONFIG_APP_MOUSE_SINGLE
+static uint8_t hogp_first_pair_flag;
+#endif
 
 //连接参数表,按顺序优先请求,主机接受了就中止
 static const struct conn_update_param_t Peripheral_Preferred_Connection_Parameters[] = {
@@ -289,32 +289,23 @@ static gatt_ctrl_t hogp_gatt_control_block = {
  *  \note
  */
 /*************************************************************************************************/
-extern struct application *main_application_operation_event(struct application *app, struct sys_event *event);
 static void __ble_bt_evnet_post(u32 arg_type, u8 priv_event, u8 *args, u32 value)
 {
-#if CFG_APP_RUN_BY_WHILE
-    //TODO
-    struct sys_event e;
-    e.type = SYS_BT_EVENT;
-    e.arg  = (void *)arg_type;
-    e.u.bt.event = priv_event;
-    if (args) {
-        memcpy(e.u.bt.args, args, 7);
+    /* struct sys_event e; */
+    struct sys_event *e = event_pool_alloc();
+    if (e == NULL) {
+        log_info("Memory allocation failed for sys_event");
+        return;
     }
-    e.u.bt.value = value;
 
-    main_application_operation_event(NULL, &e);
-#else
-    struct sys_event e;
-    e.type = SYS_BT_EVENT;
-    e.arg  = (void *)arg_type;
-    e.u.bt.event = priv_event;
+    e->type = SYS_BT_EVENT;
+    e->arg  = (void *)arg_type;
+    e->u.bt.event = priv_event;
     if (args) {
-        memcpy(e.u.bt.args, args, 7);
+        memcpy(e->u.bt.args, args, 7);
     }
-    e.u.bt.value = value;
-    sys_event_notify(&e);
-#endif
+    e->u.bt.value = value;
+    main_application_operation_event(NULL, e);
 }
 
 /*************************************************************************************************/
@@ -334,12 +325,7 @@ static void __ble_state_to_user(u8 state, u32 value)
     if (state != ble_state || state == BLE_ST_CONNECTION_UPDATE_OK) {
         log_info("ble_state:%02x===>%02x\n", ble_state, state);
         ble_state = state;
-#if CFG_APP_RUN_BY_WHILE
-        //TODO
         __ble_bt_evnet_post(SYS_BT_EVENT_BLE_STATUS, state, NULL, value);
-#else
-        __ble_bt_evnet_post(SYS_BT_EVENT_BLE_STATUS, state, NULL, value);
-#endif
     }
 }
 
@@ -457,13 +443,45 @@ static void __hogp_resume_all_ccc_enable(u8 update_request)
     ble_gatt_server_characteristic_ccc_set(hogp_con_handle, ATT_CHARACTERISTIC_2a19_01_CLIENT_CONFIGURATION_HANDLE, ATT_OP_NOTIFY);
 
 #if RCSP_BTMATE_EN
-    /* ble_gatt_server_characteristic_ccc_set(hogp_con_handle, ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE, ATT_OP_NOTIFY); */
-    /* ble_gatt_server_set_update_send(hogp_con_handle, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, ATT_OP_AUTO_READ_CCC); */
+    /* ble_gatt_server_characteristic_ccc_set(hogp_con_handle, ATT_CHARACTERISTIC_ae02_02_CLIENT_CONFIGURATION_HANDLE, ATT_OP_NOTIFY); */
+    /* ble_gatt_server_set_update_send(hogp_con_handle, ATT_CHARACTERISTIC_ae02_02_VALUE_HANDLE, ATT_OP_AUTO_READ_CCC); */
     /* set_rcsp_conn_handle(hogp_con_handle); */
 #endif
     if (update_request) {
         __hogp_send_connetion_update_deal(hogp_con_handle);
     }
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief 判断是否使能完成
+ *
+ *  \param      [in]
+ *
+ *  \return
+ *
+ *  \note
+ */
+/*************************************************************************************************/
+static uint8_t hogp_get_all_ccc_status()
+{
+    u8 characteristic_handles[] = {
+        ATT_CHARACTERISTIC_2a19_01_CLIENT_CONFIGURATION_HANDLE,
+        ATT_CHARACTERISTIC_2a4d_01_CLIENT_CONFIGURATION_HANDLE,
+        ATT_CHARACTERISTIC_2a4d_02_CLIENT_CONFIGURATION_HANDLE,
+        ATT_CHARACTERISTIC_2a4d_04_CLIENT_CONFIGURATION_HANDLE,
+        ATT_CHARACTERISTIC_2a4d_05_CLIENT_CONFIGURATION_HANDLE,
+        ATT_CHARACTERISTIC_2a4d_06_CLIENT_CONFIGURATION_HANDLE,
+        ATT_CHARACTERISTIC_2a4d_07_CLIENT_CONFIGURATION_HANDLE
+    };
+
+    for (int i = 0; i < sizeof(characteristic_handles) / sizeof(characteristic_handles[0]); i++) {
+        if (!ble_gatt_server_characteristic_ccc_get(hogp_con_handle, characteristic_handles[i])) {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
 }
 
 /*************************************************************************************************/
@@ -480,13 +498,7 @@ static void __hogp_resume_all_ccc_enable(u8 update_request)
 static void __att_check_remote_result(u16 con_handle, remote_type_e remote_type)
 {
     log_info("le_hogp %02x:remote_type= %02x\n", con_handle, remote_type);
-#if CFG_APP_RUN_BY_WHILE
-    //TODO
     __ble_bt_evnet_post(SYS_BT_EVENT_FORM_COMMON, COMMON_EVENT_BLE_REMOTE_TYPE, NULL, remote_type);
-#else
-    __ble_bt_evnet_post(SYS_BT_EVENT_FORM_COMMON, COMMON_EVENT_BLE_REMOTE_TYPE, NULL, remote_type);
-#endif
-    //to do
 }
 
 /*************************************************************************************************/
@@ -544,8 +556,8 @@ static int hogp_event_packet_handler(int event, u8 *packet, u16 size, u8 *ext_pa
             log_info("mdy_timer= %d\n", (u32)(little_endian_read_16(ext_param, 14 + 0) * 1.25));
             sys_s_hi_timer_modify(ble_hid_timer_handle, (u32)(little_endian_read_16(ext_param, 14 + 0) * 1.25));
         }
-
-        __ble_state_to_user(BLE_ST_CONNECTION_UPDATE_OK, (u32)(little_endian_read_16(ext_param, 14 + 0) * 1.25));
+        /* __ble_state_to_user(BLE_ST_CONNECTION_UPDATE_OK, (u32)(little_endian_read_16(ext_param, 14 + 0) * 1.25)); */
+        __ble_state_to_user(BLE_ST_CONNECT, 0);
         if (little_endian_read_16(ext_param, 14 + 2)) {
             ble_op_latency_skip(hogp_con_handle, LATENCY_SKIP_INTERVAL_KEEP); //
         }
@@ -553,6 +565,7 @@ static int hogp_event_packet_handler(int event, u8 *packet, u16 size, u8 *ext_pa
 
     case GATT_COMM_EVENT_DISCONNECT_COMPLETE:
         log_info("disconnect_handle:%04x,reason= %02x\n", little_endian_read_16(packet, 0), packet[2]);
+        __ble_state_to_user(BLE_ST_DISCONN, packet[2]);
         hogp_con_handle = 0;
         if (8 == packet[2] && hogp_pair_info.pair_flag) {
             //超时断开,有配对发定向广播
@@ -572,7 +585,6 @@ static int hogp_event_packet_handler(int event, u8 *packet, u16 size, u8 *ext_pa
                 hogp_pair_info.pair_flag = 1;
                 __hogp_conn_pair_vm_do(&hogp_pair_info, 1);
             }
-
             __hogp_resume_all_ccc_enable(1);
             //回连时,从配对表中获取
             u8 tmp_buf[6];
@@ -583,13 +595,16 @@ static int hogp_event_packet_handler(int event, u8 *packet, u16 size, u8 *ext_pa
             __att_check_remote_result(hogp_con_handle, remote_type);
         } else {
             //只在配对时启动检查
+#if CONFIG_APP_MOUSE_DUAL|| CONFIG_APP_MOUSE_SINGLE
+            hogp_first_pair_flag = 1;
+#endif
             log_info("first pair...\n");
             memcpy(hogp_pair_info.peer_address_info, cur_peer_addr_info, 7);
             att_server_set_check_remote(hogp_con_handle, __att_check_remote_result);
             hogp_pair_info.pair_flag = 1;
             __hogp_conn_pair_vm_do(&hogp_pair_info, 1);
         }
-        /* __ble_state_to_user(BLE_PRIV_PAIR_ENCRYPTION_CHANGE, first_pair_flag); */
+        __ble_state_to_user(BLE_PRIV_PAIR_ENCRYPTION_CHANGE, first_pair_flag);
 
         if (packet[3] == LINK_ENCRYPTION_RECONNECT) {
             //回连状态，主动回连使能也推送ble给app
@@ -606,8 +621,17 @@ static int hogp_event_packet_handler(int event, u8 *packet, u16 size, u8 *ext_pa
             log_info("mdy_timer= %d\n", (u32)(little_endian_read_16(ext_param, 6 + 0) * 1.25));
             sys_timer_modify(ble_hid_timer_handle, (u32)(little_endian_read_16(ext_param, 6 + 0) * 1.25));
         }
-
         __ble_state_to_user(BLE_ST_CONNECTION_UPDATE_OK, (u32)(little_endian_read_16(ext_param, 6 + 0) * 1.25));
+
+#if CONFIG_APP_MOUSE_DUAL|| CONFIG_APP_MOUSE_SINGLE
+        // fix：小米电脑14pro update参数reject问题
+        // 追加一次绑定次更新参数请求，放在主机update完参数并且已经跑完连接流程情况下进行
+        if (hogp_first_pair_flag && hogp_get_all_ccc_status()) {
+            hogp_first_pair_flag = 0;
+            hogp_connection_update_enable = 1;
+            __hogp_send_connetion_update_deal(hogp_con_handle);
+        }
+#endif
         break;
 
 
@@ -629,7 +653,7 @@ static int hogp_event_packet_handler(int event, u8 *packet, u16 size, u8 *ext_pa
 
     case GATT_COMM_EVENT_SERVER_STATE:
         log_info("server_state: %02x,%02x\n", little_endian_read_16(packet, 1), packet[0]);
-        __ble_state_to_user(packet[0], hogp_con_handle);
+        /* __ble_state_to_user(packet[0], hogp_con_handle); */
         break;
 
     case GATT_COMM_EVENT_CONNECTION_UPDATE_REQUEST_RESULT:
@@ -955,14 +979,17 @@ static int hogp_att_write_callback(hci_con_handle_t connection_handle, uint16_t 
         break;
 
 #if RCSP_BTMATE_EN
-    case ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE:
-        ble_gatt_server_set_update_send(connection_handle, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, ATT_OP_AUTO_READ_CCC);
-
+    case ATT_CHARACTERISTIC_ae02_02_CLIENT_CONFIGURATION_HANDLE:
+        hogp_connection_update_enable = 0;
+        ble_gatt_server_set_update_send(connection_handle, ATT_CHARACTERISTIC_ae02_02_VALUE_HANDLE, ATT_OP_AUTO_READ_CCC);
+        ble_op_latency_skip(connection_handle, 0xffff);
         //TODO
         /* set_rcsp_conn_handle(connection_handle); */
-#if (0 == BT_CONNECTION_VERIFY)
+#if (defined(BT_CONNECTION_VERIFY) && (0 == BT_CONNECTION_VERIFY))
         JL_rcsp_auth_reset();       //hid设备试能nofity的时候reset auth保证APP可以重新连接
 #endif
+        rcsp_init();
+        rcsp_dev_select(RCSP_BLE);
 
 #if (TCFG_HID_AUTO_SHUTDOWN_TIME)
         __ble_bt_evnet_post(SYS_BT_EVENT_FORM_COMMON, COMMON_EVENT_SHUTDOWN_DISABLE, NULL, 0);
@@ -983,16 +1010,16 @@ static int hogp_att_write_callback(hci_con_handle_t connection_handle, uint16_t 
         log_info("------write ccc:%04x,%02x\n", handle, buffer[0]);
 #if RCSP_BTMATE_EN
         //-----如果主机notify RCSP协议,从机告知主机存在此协议
-        if (handle == ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE) {
+        if (handle == ATT_CHARACTERISTIC_ae02_02_CLIENT_CONFIGURATION_HANDLE) {
             u8 data[1] = {0xff};
-            ble_comm_att_send_data(connection_handle, ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE, &data, 1, ATT_OP_NOTIFY);
+            ble_comm_att_send_data(connection_handle, ATT_CHARACTERISTIC_ae02_02_VALUE_HANDLE, (void *)&data, 1, ATT_OP_NOTIFY);
         }
 #endif
         ble_gatt_server_characteristic_ccc_set(hogp_con_handle, handle, buffer[0]);
         break;
 
 #if RCSP_BTMATE_EN
-    case ATT_CHARACTERISTIC_ae01_01_VALUE_HANDLE:
+    case ATT_CHARACTERISTIC_ae01_02_VALUE_HANDLE:
         log_info("rcsp_read:%x\n", buffer_size);
         printf_buf(buffer, (buffer_size > 30) ? 30 : buffer_size);
         hogp_connection_update_enable = 0;
@@ -1149,7 +1176,7 @@ static void __hogp_reconnect_low_timeout_handle(void *priv)
         hogp_pair_info.direct_adv_cnt = 0;
         hogp_adv_config_set();
 #if RCSP_BTMATE_EN
-        sys_timeout_add(NULL, wait_to_open_adv, 20);
+        sys_timeout_add(NULL, (void *)wait_to_open_adv, 20);
 #else
         ble_gatt_server_adv_enable(1);
 #endif
@@ -1334,7 +1361,6 @@ static u8 hid_get_vbat_handle(void)
     }
 
     u8 cur_val = 0;
-    u8 avg_val = 0;
     u8 val = 0;
 
     if (hid_battery_level_add_cnt > 10) {
@@ -1346,12 +1372,14 @@ static u8 hid_get_vbat_handle(void)
     cur_val = get_vbat_percent_call();
 
     if (hid_battery_level_add_cnt) {
+        u8 avg_val;
         avg_val = hid_battery_level_add_sum / hid_battery_level_add_cnt;
         if (cur_val > (avg_val + 2) || (cur_val + 2) < avg_val) {
             /*变化较大*/
             hid_battery_level_add_sum = 0;
             hid_battery_level_add_cnt = 0;
         }
+        log_info("vbat: avg=%d\n", avg_val);
     }
 
     hid_battery_level_add_sum += cur_val;
@@ -1359,7 +1387,7 @@ static u8 hid_get_vbat_handle(void)
 
     /*简单的累加求平均值计算*/
     val = (u8)(hid_battery_level_add_sum / hid_battery_level_add_cnt);
-    log_info("vbat: avg=%d,cur=%d,val=%d\n", avg_val, cur_val, val);
+    log_info("vbat: cur=%d,val=%d\n", cur_val, val);
     return val;
 }
 
@@ -1650,6 +1678,21 @@ void le_hogp_set_PNP_info(const u8 *info)
     memcpy(PnP_ID, info, sizeof(PnP_ID));
 }
 
+/*************************************************************************************************/
+/*!
+ *  \brief      判断是否已经绑定
+ *
+ *  \param      [in]
+ *
+ *  \return
+ *
+ *  \note
+ */
+/*************************************************************************************************/
+bool le_hogp_get_is_paired(void)
+{
+    return PAIR_RECONNECT_ADV_EN && hogp_pair_info.pair_flag;
+}
 
 /*************************************************************************************************/
 /*!
@@ -1764,9 +1807,8 @@ int ble_hid_data_send(u8 report_id, u8 *data, u16 len)
         return -1;
     }
 
-    putchar('@');
-
     if (ble_gatt_server_characteristic_ccc_get(hogp_con_handle, report_id_handle_table[report_id] + 1)) {
+        putchar('@');
         return ble_comm_att_send_data(hogp_con_handle, report_id_handle_table[report_id], data, len, ATT_OP_AUTO_READ_CCC);
     }
     return GATT_CMD_USE_CCC_FAIL;
@@ -1878,7 +1920,7 @@ void __attribute__((weak)) ble_hid_transfer_channel_recieve1(u8 *packet, u16 siz
  *  \note
  */
 /*************************************************************************************************/
-void ble_set_pair_list_control(u8 mode)
+bool ble_set_pair_list_control(u8 mode)
 {
     bool ret = 0;
     u8 connect_address[6];
@@ -1906,6 +1948,7 @@ void ble_set_pair_list_control(u8 mode)
         break;
     }
     log_info("%s: %02x,ret=%02x\n", __FUNCTION__, mode, ret);
+    return ret;
 }
 
 /*************************************************************************************************/

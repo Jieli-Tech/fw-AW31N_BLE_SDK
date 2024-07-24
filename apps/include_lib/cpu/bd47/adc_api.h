@@ -103,6 +103,7 @@ enum AD_CH {
 extern u32 efuse_get_gpadc_vbg_trim();
 // extern void P33_CON_SET(u16 addr, u8 start, u8 len, u8 data);
 
+#define IO_PORT_FSPG 0xff
 
 
 #define AD_CH_IO_VBAT_PORT        0//IO_PORTA_02   //选择一个有ADC功能IO口采集vbat电压，电压不能超过 vddio

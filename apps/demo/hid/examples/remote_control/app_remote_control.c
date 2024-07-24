@@ -174,7 +174,7 @@ static void hidrc_auto_shutdown_disable(void)
 #if TCFG_IR_ENABLE
 static void hidrc_send_ir_key(uint8_t cmd, uint8_t is_long)
 {
-    ir_encode_tx(0, cmd, is_long);
+    ir_encoder_tx_hx(0, cmd, is_long);
 }
 
 static void hidrc_ir_key_deal(uint8_t key_value, uint8_t key_type)
@@ -195,7 +195,7 @@ static void hidrc_ir_key_deal(uint8_t key_value, uint8_t key_type)
     } else if (key_type == KEY_EVENT_HOLD) {
         hidrc_send_ir_key(cmd, 1);
     } else if (key_type == KEY_EVENT_UP) {
-        ir_encode_repeat_stop();
+        ir_encoder_repeat_stop();
     } else {
         ;
     }
@@ -273,13 +273,21 @@ static void hidrc_app_key_deal_test(uint8_t key_type, uint8_t key_value)
 static void hidrc_set_soft_poweroff(void)
 {
     log_info("hidrc_set_soft_poweroff\n");
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
     hidrc_is_active = 1;
+#endif
 
     btstack_ble_exit(0);
 
     if (ble_hid_is_connected()) {
         //延时，确保BT退出链路断开
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
+        //soft 方式非必须等链路断开
         sys_timeout_add(NULL, app_power_set_soft_poweroff, WAIT_DISCONN_TIME_MS);
+#elif (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        //must wait disconn
+        app_power_soft.wait_disconn = 1;
+#endif
     } else {
         app_power_set_soft_poweroff(NULL);
     }
@@ -301,14 +309,9 @@ static void hidrc_app_bt_start()
     u32 sys_clk =  clk_get("sys");
     bt_pll_para(TCFG_CLOCK_OSC_HZ, sys_clk, 0, 0);
 
-#if TCFG_NORMAL_SET_DUT_MODE
-    clk_set("sfc", TCFG_CLOCK_DUT_SFC_HZ);
-    user_sele_dut_mode(1);
-#else
     btstack_ble_start_before_init(&hidrc_ble_config, 0);
     le_hogp_set_reconnect_adv_cfg(ADV_DIRECT_IND_LOW, 5000);
     le_hogp_set_output_callback(hidrc_recv_callback);
-#endif
 
     cfg_file_parse(0);
     btstack_init();
@@ -345,8 +348,7 @@ static void hidrc_app_start()
     ir_encoder_init(IR_KEY_IO, IR_WORK_FRQ, IR_WORK_DUTY);
 #endif
 
-
-    int msg[2] = {0};
+    int msg[4] = {0};
     while (1) {
         get_msg(sizeof(msg) / sizeof(int), msg);
         app_comm_process_handler(msg);
@@ -474,9 +476,9 @@ static int hidrc_bt_connction_status_event_handler(struct bt_event *bt)
  *  \note
  */
 /*************************************************************************************************/
-static void hidrc_hogp_ble_status_callback(ble_state_e status, uint8_t reason)
+static void hidrc_hogp_ble_status_callback(ble_state_e status, uint8_t value)
 {
-    log_info("hidrc_hogp_ble_status_callback============== %02x   reason:0x%x\n", status, reason);
+    log_info("hidrc_hogp_ble_status_callback============== %02x   value:0x%x\n", status, value);
     switch (status) {
     case BLE_ST_CONNECT:
 #if TCFG_LED_ENABLE
@@ -491,25 +493,41 @@ static void hidrc_hogp_ble_status_callback(ble_state_e status, uint8_t reason)
     case BLE_ST_DISCONN:
 #if TCFG_LED_ENABLE
         led_set_connect_flag(0);
-        if (reason == ERROR_CODE_CONNECTION_TERMINATED_BY_LOCAL_HOST) {
+        if (value == ERROR_CODE_CONNECTION_TERMINATED_BY_LOCAL_HOST) {
             led_operate(LED_CLOSE);
         } else {
             led_operate(LED_WAIT_CONNECT);
         }
 #endif
         log_info("BLE_ST_DISCONN BY LOCAL\n");
+
+#if (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        if (app_power_soft.wait_disconn) {
+            app_power_soft.wait_disconn = 0;
+            app_power_set_soft_poweroff(NULL);
+        }
+#endif
         break;
 
     case BLE_ST_NOTIFY_IDICATE:
         log_info("BLE_ST_NOTIFY_IDICATE\n");
         break;
 
+    case BLE_PRIV_PAIR_ENCRYPTION_CHANGE:
+        log_info("BLE_PRIV_PAIR_ENCRYPTION_CHANGE\n");
+        break;
+
     case BLE_ST_CONNECT_UPDATE_REQUEST:
+        log_info("BLE_ST_CONNECT_UPDATE_REQUEST\n");
+        break;
+
+    case BLE_ST_CONNECTION_UPDATE_OK:
 #if TCFG_LED_ENABLE
         // 连接完成灯灭
-        led_operate(LED_OFF);
+        led_operate(LED_CLOSE);
 #endif
-        log_info("BLE_ST_CONNECT_UPDATE_REQUEST\n");
+        // update timer period from connect inteval
+        log_info("BLE_ST_CONNECTION_UPDATE_OK, INTERVAL:%d\n", value);
         break;
 
     default:

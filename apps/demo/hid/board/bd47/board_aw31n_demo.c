@@ -1,6 +1,7 @@
 #include "app_config.h"
 #include "adc_api.h"
 #include "key.h"
+#include "init.h"
 #include "key_drv_io.h"
 
 #ifdef CONFIG_BOARD_AW31N_DEMO
@@ -53,19 +54,27 @@ void gpio_config_soft_poweroff(void)
 {
     PORT_TABLE(g);
 
-#if KEY_AD_EN
-    PORT_PROTECT(AD_KEY_IO);
-#endif
-
 #if KEY_IO_EN
     PORT_PROTECT(TCFG_IOKEY_POWER_ONE_PORT);
     PORT_PROTECT(TCFG_IOKEY_PREV_ONE_PORT);
 #endif
 
+#if KEY_AD_EN
+    PORT_PROTECT(AD_KEY_IO);
+#endif
     __port_init((u32)gpio_config);
+
 }
 /************************** SOFTOFF IO PROTECT****************************/
 
+// 软关机前需要做的操作可以放到这个函数
+void set_before_softoff(void)
+{
+    log_info(">>>> set before softoff");
+    gpio_config_soft_poweroff();
+}
+
+platform_uninitcall(set_before_softoff);
 
 /************************** IO WAKE UP CONFIG****************************/
 #define        WAKE_IO_MAX_NUMS               3

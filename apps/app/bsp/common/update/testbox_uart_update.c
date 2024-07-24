@@ -21,8 +21,13 @@
 /* static u8 uart_buf[DMA_BUF_LEN] sec(.uart_update_buf1) __attribute__((aligned(4))); */
 
 //测试盒串口在上电后会一直运行,因此不能放入NK_RAM,只能做overlay
+#if TCFG_LOWPOWER_LOWPOWER_SEL
 static u8 tmp_buf[DMA_BUF_LEN] __attribute__((aligned(4))) sec(.update.bss.overlay) = {0};
 static u8 uart_buf[DMA_BUF_LEN] __attribute__((aligned(4))) sec(.update.bss.overlay);
+#else
+static u8 tmp_buf[DMA_BUF_LEN] __attribute__((aligned(4))) NOT_KEEP_RAM = {0};
+static u8 uart_buf[DMA_BUF_LEN] __attribute__((aligned(4))) NOT_KEEP_RAM;
+#endif
 
 static volatile u8 is_testbox_uart_active = 0;	//串口升级空闲
 
@@ -41,6 +46,13 @@ static volatile u8 is_testbox_uart_active = 0;	//串口升级空闲
 #define SEEK_SET	0	/* Seek from beginning of file.  */
 #define SEEK_CUR	1	/* Seek from current position.  */
 #define SEEK_END	2	/* Seek from end of file.  */
+
+#define TESTBOX_UART_UPDATE_FLAG      0xAB539610
+#define SDK_JUMP_FLAG                 "SDKJUMP"
+struct testbox_uart_update_info {
+    u32 baud;
+    u32 uart_update_flag;
+};
 
 struct uart_upgrade_cmd {
     u8 cmd;
@@ -76,6 +88,8 @@ static u8 uart_step = UART_UPDATE_START; // 升级状态机
 static u32 loader_len = 0;  // 记录接收的loader长度
 static volatile u32 file_offset = 0;
 static const u8 ack_cmd[5] = {0x55, 0xaa, 1, 0x20, 0x22} ;
+static const u8 ack_cmd_1[6] = {0x55, 0xaa, 2, 0x20, 0xAA, 0xAA} ;
+static u32 update_baudrate = 0;
 
 extern u16 chip_crc16(void *ptr, u32 len);
 extern void uart_update_check(void);
@@ -92,26 +106,39 @@ static void uart_update_set_step(u8 step)
     uart_step = step;
 }
 
-static void uart_update_cmd_ack(void)
+static void uart_update_cmd_ack(u8 flag)
 {
     u32 tx_buf[2];
-    memcpy(tx_buf, ack_cmd, sizeof(ack_cmd));
-    uart_send_bytes(UART_UPDATE_NUM, (void *)tx_buf, sizeof(ack_cmd));
+    if (flag == 1) {
+        memcpy(tx_buf, ack_cmd_1, sizeof(ack_cmd_1));
+        uart_send_bytes(UART_UPDATE_NUM, (void *)tx_buf, sizeof(ack_cmd_1));
+    } else {
+        memcpy(tx_buf, ack_cmd, sizeof(ack_cmd));
+        uart_send_bytes(UART_UPDATE_NUM, (void *)tx_buf, sizeof(ack_cmd));
+    }
 }
 
+extern s32 uart_set_rx_timeout_thresh(uart_dev uart_num, u32 timeout_thresh);
 void uart_update_maskrom_start(void *buf, u32 len)
 {
     if (uart_update_get_step() == UART_UPDATE_START) {
         memcpy((u8 *)&ut_cmd, (u8 *)buf, sizeof(ut_cmd));
-        uart_update_cmd_ack();
+        uart_update_cmd_ack(ut_cmd.res);
         uart_wait_tx_idle(UART_UPDATE_NUM, 200);
         loader_len = 0;
         if (ut_cmd.baud) {
             uart_set_baudrate(UART_UPDATE_NUM, ut_cmd.baud * 10000);
+            uart_set_rx_timeout_thresh(UART_UPDATE_NUM, (20 * 100) / ut_cmd.baud);
         } else {
             uart_set_baudrate(UART_UPDATE_NUM, 10 * 10000);
+            uart_set_rx_timeout_thresh(UART_UPDATE_NUM, 200);
         }
-        uart_update_set_step(UART_UPDATE_OTA_RECV);
+        if (ut_cmd.res == 1) {
+            uart_update_set_step(UART_UPDATE_OTA);
+            post_msg(1, EVENT_TEXTBOX_UART_UPDATE);
+        } else { // 按照原来的流程
+            uart_update_set_step(UART_UPDATE_OTA_RECV);
+        }
     }
 }
 
@@ -148,11 +175,10 @@ static bool uart_send_and_recv_packet(u8 *buf, u16 length, u32 timeout)
 
 static void uart_update_recv(u8 cmd, u8 *buf, u32 len)
 {
-    u32 baudrate = 0;
     switch (cmd) {
     case CMD_UPDATE_START:
-        memcpy(&baudrate, buf, 4);
-        uart_set_baudrate(UART_UPDATE_NUM, baudrate);
+        memcpy(&update_baudrate, buf, 4);
+        uart_set_baudrate(UART_UPDATE_NUM, update_baudrate);
         break;
 
     case CMD_UPDATE_END:
@@ -293,15 +319,34 @@ static void uart_update_ota_start(void)
     uart_update_cmd(CMD_UPDATE_START, NULL, 0);
 }
 
+static void app_testbox_loader_ufw_update_private_param_fill(UPDATA_PARM *p)
+{
+    memcpy(p->file_patch, updata_file_name, strlen(updata_file_name));
+}
+
 static void testbox_uart_update_param_private_handle(UPDATA_PARM *p)
 {
-    /* u16 up_type = p->parm_type; */
+    u16 up_type = p->parm_type;
+    struct testbox_uart_update_info testbox_uart_update_parm;
+    testbox_uart_update_parm.baud = update_baudrate;
+    testbox_uart_update_parm.uart_update_flag = TESTBOX_UART_UPDATE_FLAG;
+
+    ASSERT(sizeof(struct testbox_uart_update_info) <= sizeof(p->parm_priv), "uart update parm size limit");
+
+    memcpy(p->parm_priv, &testbox_uart_update_parm, sizeof(testbox_uart_update_parm));
 
     memcpy(p->file_patch, updata_file_name, strlen(updata_file_name));
 }
 
+void testbox_uart_update_jump_flag_fill(void)
+{
+    u8 *p = (u8 *)BOOT_STATUS_ADDR;
+    memcpy(p, SDK_JUMP_FLAG, sizeof(SDK_JUMP_FLAG));
+}
+
 static void testbox_uart_update_before_jump_handle(int up_type)
 {
+    testbox_uart_update_jump_flag_fill();
 #if 0//CONFIG_UPDATE_JUMP_TO_MASK
     log_info(">>>[test]:latch reset update\n");
     latch_reset();
@@ -336,11 +381,14 @@ static void testbox_uart_update_check(void)
         .p_op_api = (update_op_api_t *) &uart_dev_update_op,
         .task_en = 0,
     };
+    if (ut_cmd.res == 1) {
+        info.type = TESTBOX_UART_UPDATA_2;
+    }
     app_active_update_task_init(&info);
 }
 
 u8 g_testbox_uart_up_flag = 0;
-u8 uart_update_ota_loop(u8 *buf, u32 len)
+u16 uart_update_ota_loop(u8 *buf, u32 len)
 {
     if (!CONFIG_UPDATE_TESTBOX_UART_EN) {
         return UPDATA_NON;
@@ -369,6 +417,20 @@ void uart_update_msg_handle(int msg)
     }
 }
 
+static u16 uart_update_timeout = 0;
+void uart_update_loader_tran_end_check(void *p)
+{
+    if ((ut_cmd.lenOfloader - (ut_cmd.lenOfloader >> 4)) <= loader_len) {
+        if (!g_testbox_uart_up_flag) {
+            uart_update_set_step(UART_UPDATE_OTA);
+
+            post_msg(1, EVENT_TEXTBOX_UART_UPDATE);
+            g_testbox_uart_up_flag = 1;
+            log_info("recv loader ok, recv loader len %u, want len %u\n", loader_len, ut_cmd.lenOfloader - (ut_cmd.lenOfloader >> 4));
+        }
+    }
+}
+
 static u8 uart_update_deal(u8 *buf, u32 len)
 {
     switch (uart_step) {
@@ -378,11 +440,22 @@ static u8 uart_update_deal(u8 *buf, u32 len)
     case UART_UPDATE_OTA_RECV:
         loader_len += len;
         if (ut_cmd.lenOfloader <= loader_len) {
-            log_info("recv loader ok, recv loader len %u, want len %u\n", loader_len, ut_cmd.lenOfloader);
-            uart_update_set_step(UART_UPDATE_OTA);
+            if (uart_update_timeout) {
+                sys_timeout_del(uart_update_timeout);
+            }
+            if (!g_testbox_uart_up_flag) {
+                uart_update_set_step(UART_UPDATE_OTA);
 
-            post_msg(1, EVENT_TEXTBOX_UART_UPDATE);
-            g_testbox_uart_up_flag = 1;
+                post_msg(1, EVENT_TEXTBOX_UART_UPDATE);
+                g_testbox_uart_up_flag = 1;
+                log_info("recv loader ok, recv loader len %u, want len %u\n", loader_len, ut_cmd.lenOfloader);
+            }
+        } else {
+            if (uart_update_timeout == 0) {
+                uart_update_timeout = sys_timeout_add(NULL, uart_update_loader_tran_end_check, 800);
+            } else {
+                sys_timer_re_run(uart_update_timeout);
+            }
         }
         return 1;// 不需要后续处理
         break;
@@ -407,6 +480,9 @@ static void uart_update_isr_hook(uart_dev uart_num, enum uart_event event)
 
     /* printf(">>>[test]:event = 0x%x\n", event); */
     if (event & (UART_EVENT_RX_DATA | UART_EVENT_RX_TIMEOUT)) {
+        if (!is_testbox_uart_active) {
+            sleep_overlay_set_destroy();
+        }
         is_testbox_uart_active = 1;
         u32 rx_len = DMA_BUF_LEN;
         u32 len = uart_recv_bytes(UART_UPDATE_NUM, protocal_frame->raw_data, rx_len);
@@ -452,7 +528,7 @@ static int testbox_uart_dev_init()
         .rx_cbuffer_size = DMA_BUF_LEN,
     };
 
-    protocal_frame = tmp_buf;
+    protocal_frame = (void *)tmp_buf;
 
     ret = uart_dma_init(UART_UPDATE_NUM, &uart_update_dma);
     if (ret != 0) {
@@ -479,6 +555,11 @@ void testbox_uart_update_init(void)
 
 void testbox_uart_active_set(void *priv)
 {
+    if (uart_step != UART_UPDATE_START) {
+        // 升级失败
+        cpu_reset();
+    }
+    sleep_overlay_set_destroy();
     is_testbox_uart_active = 0;      //35*10Ms
     testbox_timer_id = 0;
 }

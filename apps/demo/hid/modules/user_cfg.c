@@ -27,23 +27,11 @@
 #include "log.h"
 
 /*对应bt的tx功率挡位,SDK默认使用接近 0 dbm 功率挡位*/
-#if (defined CONFIG_CPU_BR30)
-#define  SET_BLE_TX_POWER_LEVEL        (4)
-#elif (defined CONFIG_CPU_BR34)
-#define  SET_BLE_TX_POWER_LEVEL        (7)
-#else
-/* #define  SET_BLE_TX_POWER_LEVEL        (0)//-4dBm */
-#define  SET_BLE_TX_POWER_LEVEL        (1)//0dBm
-/* #define  SET_BLE_TX_POWER_LEVEL        (2)//+2dBm */
-/* #define  SET_BLE_TX_POWER_LEVEL        (3)//+5dBm */
-/* #define  SET_BLE_TX_POWER_LEVEL        (4)//+8dBm */
-#endif
+#define  SET_BLE_TX_POWER_LEVEL        (2)//0dBm
 
 void lp_winsize_init(struct lp_ws_t *lp);
-/* void bt_max_pwr_set(u8 pwr, u8 pg_pwr, u8 iq_pwr, u8 ble_pwr); */
 
 extern APP_VAR app_var;
-
 
 BT_CONFIG bt_cfg = {
     .ble_name        = "AW31N_HID",
@@ -279,10 +267,10 @@ void cfg_file_parse(u8 idx)
 
 
     //-----------------------------CFG_BT_RF_POWER_ID----------------------------//
-#if TCFG_NORMAL_SET_DUT_MODE
+#if (TCFG_NORMAL_SET_DUT_MODE || (CONFIG_BT_MODE != BT_NORMAL))
     app_var.rf_power = 10;
     bt_max_pwr_set(app_var.rf_power, 5, 8, bt_get_pwr_max_level());
-    log_info("rf config:%d\n", bt_get_pwr_max_level());
+    log_info("test rf config:%d, dut %d,bt_mode %d\n", bt_get_pwr_max_level(), TCFG_NORMAL_SET_DUT_MODE, CONFIG_BT_MODE);
 #else
 #if 0
     ret = syscfg_read(CFG_BT_RF_POWER_ID, &app_var.rf_power, 1);

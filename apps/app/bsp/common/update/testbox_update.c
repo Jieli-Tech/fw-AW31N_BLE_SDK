@@ -136,6 +136,7 @@ void testbox_update_msg_handle(int msg)
             .p_op_api = &ble_ll_ch_update_op,
             .task_en = 1,
         };
+        sleep_overlay_set_destroy();//overlay 互斥
         app_active_update_task_init(&info);
     }
     break;

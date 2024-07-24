@@ -335,5 +335,6 @@ extern const struct application app_main_end[];
 
 
 void app_main();
-struct application *main_application_operation_event(struct application *app, struct sys_event *event);
+extern struct application *main_application_operation_event(struct application *app, struct sys_event *event);
+void main_sys_event_msg_handle(int *msg);
 #endif

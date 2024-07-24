@@ -1,12 +1,13 @@
 #include "app_config.h"
-#include "adc_api.h"
-#include "key.h"
-#include "key_drv_io.h"
-
 #ifdef CONFIG_BOARD_AW313A_MOUSE
+#include "key.h"
+#include "init.h"
 #include "includes.h"
 #include "OMSensor_manage.h"
 #include "code_switch.h"
+#include "app_power_mg.h"
+#include "adc_api.h"
+#include "key_drv_io.h"
 
 #define LOG_TAG_CONST       BOARD
 #define LOG_TAG             "[BOARD]"
@@ -16,6 +17,8 @@
 /* #define LOG_DUMP_ENABLE */
 #define LOG_CLI_ENABLE
 #include "debug.h"
+
+void mouse_send_data_timer_deinit(void);
 
 void board_init()
 {
@@ -32,10 +35,14 @@ OMSENSOR_PLATFORM_DATA_BEGIN(OMSensor_data)
 #if TCFG_HAL3205_EN
 .OMSensor_id      = "hal3205",
 #endif
- .OMSensor_sclk_io = TCFG_OPTICAL_SENSOR_SCLK_PORT,
-  .OMSensor_data_io = TCFG_OPTICAL_SENSOR_DATA_PORT,
-   .OMSensor_int_io  = TCFG_OPTICAL_SENSOR_INT_PORT,
-    OMSENSOR_PLATFORM_DATA_END();
+#if TCFG_HAL3212_EN
+ .OMSensor_id      = "hal3212",
+#endif
+
+  .OMSensor_sclk_io = TCFG_OPTICAL_SENSOR_SCLK_PORT,
+   .OMSensor_data_io = TCFG_OPTICAL_SENSOR_DATA_PORT,
+    .OMSensor_int_io  = TCFG_OPTICAL_SENSOR_INT_PORT,
+     OMSENSOR_PLATFORM_DATA_END();
 #endif  /*  TCFG_HAL3205_EN */
 
 /**************************** CODE_SWITCH  config************************/
@@ -46,8 +53,6 @@ SW_PLATFORM_DATA_BEGIN(sw_data)
   SW_PLATFORM_DATA_END();
 #endif  /*  TCFG_CODE_SWITCH_ENABLE*/
 
-
-static u8 sensor_init_flag;
 void mouse_board_devices_init(void)
 {
 
@@ -57,7 +62,6 @@ void mouse_board_devices_init(void)
 
 #ifdef TCFG_OMSENSOR_ENABLE
     optical_mouse_sensor_init(&OMSensor_data);
-    sensor_init_flag = 1;
 #endif /* TCFG_OMSENSOR_ENABLE*/
 }
 
@@ -131,27 +135,45 @@ const struct key_remap_data iokey_remap_data = {
 #endif
 #endif
 
+#ifdef TCFG_IOKEY_MOUSE_SWITCH_PORT
+static void mouse_switch_softoff_callback(P33_IO_WKUP_EDGE edge)
+{
+    log_info(">>>>>>>switch to softoff");
+    p33_io_wakeup_edge(TCFG_IOKEY_MOUSE_SWITCH_PORT, RISING_EDGE);
+    app_power_set_soft_poweroff(NULL);
+}
+#endif
+
 /************************** SOFTOFF IO PROTECT****************************/
 void gpio_config_soft_poweroff(void)
 {
     PORT_TABLE(g);
+
+#ifdef TCFG_IOKEY_MOUSE_SWITCH_PORT
+    PORT_PROTECT(TCFG_IOKEY_MOUSE_SWITCH_PORT);
+#endif
+
 #if KEY_IO_EN
     PORT_PROTECT(TCFG_IOKEY_MOUSE_LK_PORT);
     PORT_PROTECT(TCFG_IOKEY_MOUSE_RK_PORT);
-    PORT_PROTECT(TCFG_IOKEY_MOUSE_HK_PORT);
-    PORT_PROTECT(TCFG_IOKEY_MOUSE_CPI_PORT);
 #endif
 
-#ifdef TCFG_OMSENSOR_ENABLE
-    PORT_PROTECT(TCFG_OPTICAL_SENSOR_SCLK_PORT);
-    PORT_PROTECT(TCFG_OPTICAL_SENSOR_DATA_PORT);
-#endif
     __port_init((u32)gpio_config);
 }
 /************************** SOFTOFF IO PROTECT****************************/
 
+// 软关机前需要做的操作可以放到这个函数
+void set_before_softoff(void)
+{
+    log_info(">>>> set before softoff");
+    mouse_send_data_timer_deinit();
+    gpio_config_soft_poweroff();
+}
+
+platform_uninitcall(set_before_softoff);
+
 /************************** IO WAKE UP CONFIG****************************/
-#define        WAKE_IO_MAX_NUMS                 7
+#define        WAKE_IO_MAX_NUMS                 3
 static struct _p33_io_wakeup_config keys_config[WAKE_IO_MAX_NUMS];
 static void init_key_io_wakeup(const struct _p33_io_wakeup_config *config)
 {
@@ -171,6 +193,7 @@ static struct _p33_io_wakeup_config create_key_io_wakeup_config(u32 gpio, enum g
     };
 }
 
+
 void key_wakeup_init()
 {
     u8 index = 0;
@@ -178,26 +201,20 @@ void key_wakeup_init()
 #if KEY_IO_EN
     keys_config[index++] = create_key_io_wakeup_config(TCFG_IOKEY_MOUSE_LK_PORT, PORT_INPUT_PULLUP_10K,
                            PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
-    keys_config[index++] = create_key_io_wakeup_config(TCFG_IOKEY_MOUSE_HK_PORT, PORT_INPUT_PULLUP_10K,
-                           PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
     keys_config[index++] = create_key_io_wakeup_config(TCFG_IOKEY_MOUSE_RK_PORT, PORT_INPUT_PULLUP_10K,
                            PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
-    keys_config[index++] = create_key_io_wakeup_config(TCFG_IOKEY_MOUSE_CPI_PORT, PORT_INPUT_PULLUP_10K,
-                           PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
 #endif
 
-    // 鼠标gsensor唤醒口设置
-#ifdef TCFG_OMSENSOR_ENABLE
-    keys_config[index++] = create_key_io_wakeup_config(TCFG_OPTICAL_SENSOR_INT_PORT, PORT_INPUT_PULLUP_10K,
-                           PORT_FLT_DISABLE, FALLING_EDGE, NULL);
-#endif
+    // 鼠标gsensor唤醒口设置,滑动唤醒，软关机功耗会高
+    /* #ifdef TCFG_OMSENSOR_ENABLE */
+    /*     keys_config[index++] = create_key_io_wakeup_config(TCFG_OPTICAL_SENSOR_INT_PORT, PORT_INPUT_PULLUP_10K, */
+    /*                            PORT_FLT_DISABLE, FALLING_EDGE, NULL); */
+    /* #endif */
 
-    // 鼠标滚轮器唤醒口设置
-#if TCFG_CODE_SWITCH_ENABLE
-    keys_config[index++] = create_key_io_wakeup_config(TCFG_CODE_SWITCH_A_PHASE_PORT, PORT_INPUT_PULLUP_10K,
-                           PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
-    keys_config[index++] = create_key_io_wakeup_config(TCFG_CODE_SWITCH_B_PHASE_PORT, PORT_INPUT_PULLUP_10K,
-                           PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
+    // 鼠标开关模式切换设置
+#ifdef TCFG_IOKEY_MOUSE_SWITCH_PORT
+    keys_config[index++] = create_key_io_wakeup_config(TCFG_IOKEY_MOUSE_SWITCH_PORT, PORT_INPUT_PULLUP_1M,
+                           PORT_FLT_DISABLE, FALLING_EDGE, mouse_switch_softoff_callback);
 #endif
 
     // 初始化和启用IO唤醒

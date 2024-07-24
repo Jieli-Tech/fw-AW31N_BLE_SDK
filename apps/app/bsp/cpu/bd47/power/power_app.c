@@ -1,7 +1,9 @@
 #include "asm/power_interface.h"
+#include "asm/rtc.h"
 #include "uart.h"
 #include "gpio.h"
 #include "app_config.h"
+#include "start/init.h"
 
 //-------------------------------------------------------------------
 /*config
@@ -13,12 +15,12 @@
 #define CONFIG_UART_DEBUG_PORT		-1
 #endif
 
-#define DO_PLATFORM_UNINITCALL()			//do_platform_uninitcall()
+#define DO_PLATFORM_UNINITCALL()			do_platform_uninitcall()
 #define GPIO_CONFIG_UNINIT()				//gpio_config_uninit()
 
 static void usb_high_res()
 {
-
+    gpio_set_mode(PORTUSB, 0xffff, PORT_HIGHZ);
 }
 
 /*-----------------------------------------------------------------------
@@ -41,7 +43,8 @@ void sleep_enter_callback(u8 step)
     usb_io_con = JL_PORTUSB->DIR;
 #endif
 
-    usb_high_res();
+    //配高阻需根据外围电路设计来决定
+    /* usb_high_res(); */
 }
 
 void sleep_exit_callback(u32 usec)
@@ -58,33 +61,33 @@ void sleep_exit_callback(u32 usec)
 static void __mask_io_cfg()
 {
     struct app_soft_flag_t app_soft_flag = {0};
-#if TCFG_CLOCK_OSC_1PIN_EN
-    app_soft_flag.sfc_fast_boot = 0;
-#else
     app_soft_flag.sfc_fast_boot = 1;
-#endif
     mask_softflag_config(&app_soft_flag);
 }
 
 u8 power_soff_callback()
 {
-    DO_PLATFORM_UNINITCALL();
 
     extern_dcdc_switch(0);
 
+    rtc_save_context_to_vm();
+
     __mask_io_cfg();
 
-#if KEY_MATRIX_EN
-    extern void set_matrixkey_row_port_output();
-    // 矩阵按键进softoff前先把行IO拉低使其可以被唤醒
-    set_matrixkey_row_port_output();
-#endif
-
-    void gpio_config_soft_poweroff(void);
-    gpio_config_soft_poweroff();
+    DO_PLATFORM_UNINITCALL();
 
     GPIO_CONFIG_UNINIT();
 
+    return 0;
+}
+
+//power_set_soft_poweroff 处理回调
+int power_set_soft_poweroff_hook(void)
+{
+#if defined(CONFIG_CPU_BD47)
+    //check overlay
+    sleep_overlay_check_reload();
+#endif
     return 0;
 }
 

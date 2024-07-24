@@ -97,6 +97,17 @@ extern const int config_bt_temperature_pll_trim ;
 extern const int CONFIG_WIFI_DETECT_ENABLE;
 extern const int ESCO_FORWARD_ENABLE;
 extern const int CONFIG_DONGLE_SPEAK_ENABLE ;
+
+extern const u16 config_bt_api_msg_buffer_size;
+extern const u16 config_hci_host_msg_buffer_size;
+extern const u16 config_hci_ctrl_msg_buffer_size;
+
+extern const int IRQ_BTSTACK_MSG_IP;
+
+extern void ble_rx_irq_iodebug_in(void);
+extern void ble_rx_irq_iodebug_out(void);
+extern void btstack_iodebug_in(void);
+extern void btstack_iodebug_out(void);
 /********************************************************************************/
 /*
  *                   API
@@ -217,6 +228,8 @@ BR23: rang(0~9)  {-15.7,  -12.5,  -10.0, -6.6,  -4.4,  -2.5,  -0.1,  +2.1,  +4.6
 BR25: rang(0~9)  {-15.7,  -12.5,  -10.0, -6.6,  -4.4,  -2.5,  -0.1,  +2.1,  +4.6,  +6.4}
 BR30: rang(0~8)  {-17.48, -11.46, -7.96, -3.59, -0.79, +1.12, +3.8,  +6.5,  +8.44}
 BR34: rang(0~10) {-17.6,  -14.0,  -11.5, -9.6,  -6.6,  -4.4,  -1.8,  0,     +2.1,  +4,    +6.3}
+BD49: rang(0~7)  {-23.8,  -17.6,  -11.6, -8.1,  -4.7,  +0.9,  +4.9,  +6.7}
+BD47: range(0~5) {-5.0,   -2.2,   +0.1,  +4.2,  +7.0,  +10.0}
 */
 
 void bt_max_pwr_set(u8 pwr, u8 pg_pwr, u8 iq_pwr, u8 ble_pwr);
@@ -308,6 +321,45 @@ void ble_vendor_set_hold_prio(u8 role, u8 enable);
  */
 /* ----------------------------------------------------------------------------*/
 u8 bt_get_pwr_max_level(void);
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief  库函数,使用私有协议连接后调用捕获蓝牙接收数据
+ *
+ * @param  [in] data
+ * @param  [in] len
+ * @return true释放rx buffer,false走原本协议栈流程
+ * @note   用法参考ble_dg_central.c
+ */
+/* ----------------------------------------------------------------------------*/
+bool ll_conn_rx_acl_hook_get(const uint8_t *const data, size_t len);
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief  库函数,蓝牙事件中断后会被调用一次
+ *
+ * @param  [in] priv_hw
+ * @param  [in] link
+ * @param  [in] hw_state
+ * @param  [in] flag 能否压包标志
+ * @return 0: 发送成功; 非0:发送失败
+ * @note   用法参考app_mouse_dual.c
+ */
+/* ----------------------------------------------------------------------------*/
+void ble_event_irq_hook(void *priv_hw, void *link, uint8_t hw_state, u8 flag);
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief  私有协议调用快速发数
+ *
+ * @param  [in] packet
+ * @param  [in] len
+ * @param  [in] tx_octets 发送申请的buffer
+ * @return 0: 发送成功; 非0:发送失败
+ * @note   用法参考app_mouse_dual.c
+ */
+/* ----------------------------------------------------------------------------*/
+int hw_send_packet_fast(u16 att_handle, void *priv_hw, const u8 *packet, int len, int tx_octets, uint8_t hw_state);
 
 void set_bt_afh_classs_enc(u8 afh_class);
 void set_bt_enhanced_power_control(u8 en);

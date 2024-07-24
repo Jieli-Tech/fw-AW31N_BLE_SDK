@@ -65,5 +65,5 @@ u8 get_rcsp_connect_status(void);
 void app_update_start(int msg);
 u8 get_rcsp_support_new_reconn_flag(void);
 void rcsp_dev_select(u8 type);
-
+u8 rcsp_update_is_start(void);
 #endif

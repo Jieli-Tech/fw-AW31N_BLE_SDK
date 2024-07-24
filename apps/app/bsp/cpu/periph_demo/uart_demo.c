@@ -2,7 +2,7 @@
 #include "uart_v2.h"
 #include "gpio.h"
 
-/* #define LOG_TAG_CONST   UART */
+#define LOG_TAG_CONST   UART
 #define LOG_TAG         "[uart_demo]"
 #include "log.h"
 
@@ -39,7 +39,7 @@ void uart_sync_demo_start(void)
     log_info("frame_ptr:%d", frame_ptr);
 
     const struct uart_dma_config dma = {
-        .rx_timeout_thresh = 100,//us
+        .rx_timeout_thresh = 3 * 10000000 / 1000000, //单位:us,公式：3*10000000/baud(ot:3个byte时间)
         .event_mask = UART_EVENT_TX_DONE | UART_EVENT_RX_FIFO_OVF | UART_EVENT_RX_TIMEOUT,
         .irq_priority = 3,
         .irq_callback = uart_irq_func,

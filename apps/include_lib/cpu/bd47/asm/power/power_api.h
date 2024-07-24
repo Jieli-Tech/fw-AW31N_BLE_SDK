@@ -1,12 +1,19 @@
 #ifndef __POWER_API_H__
 #define __POWER_API_H__
 
+#include "power_defined.h"
+
 #define AT_VOLATILE_RAM_POWER        	AT(.power_driver.data)
+#define AT_VOLATILE_RAM_BSS_POWER      	AT(.power_driver.data.bss)
 #define AT_VOLATILE_RAM_CODE_POWER      AT(.power_driver.text.cache.L1)
 
 #define AT_VOLATILE_RAM_LOWPOWER        AT(.power_driver.data.overlay)
 #define AT_VOLATILE_RAM_BSS_LOWPOWER    AT(.power_driver.data.bss.overlay)
 #define AT_VOLATILE_RAM_CODE_LOWPOWER	AT(.power_driver.text.cache.L1.overlay)
+
+#define AT_VOLATILE_RAM_LOWPOWER_OSC        AT(.power_driver_osc.data.overlay)
+#define AT_VOLATILE_RAM_BSS_LOWPOWER_OSC    AT(.power_driver_osc.data.bss.overlay)
+#define AT_VOLATILE_RAM_CODE_LOWPOWER_OSC   AT(.power_driver_osc.text.cache.L1.overlay)
 
 //
 //
@@ -15,12 +22,6 @@
 //
 //
 //******************************************************************
-//config
-enum LOWPOWER_CONFIG {
-    LOWPOWER_CLOSE,
-    SLEEP_EN,
-    DEEP_SLEEP_EN,
-};
 
 //osc_type
 enum LOWPOWER_OSC_TYPE {
@@ -85,8 +86,7 @@ enum PCONTROL_CMD {
     //*****************************************************
     /* power
      */
-    PCONTROL_POWER_HW_RESERVE = 0x100,
-    PCONTROL_POWER_MODE,					//使用enum POWER_MODE配置
+    PCONTROL_POWER_MODE = 0x100,
     PCONTROL_DCVDD_CAP_SW,					//0：DCVDD上没有外挂电容	1：DCVDD上有外挂电容
     PCONTROL_FLASH_PG_VDDIO,				//0：FLASH电源引脚使用IO 	1：FLASH电源引脚没有使用IO
     PCONTROL_RTC_CLK,						//RTC_CLK类型，配置开机、关机晶振流程
@@ -97,6 +97,7 @@ enum PCONTROL_CMD {
      */
     PCONTROL_PD_VDDIO_KEEP,					//pdown vddio切换流程(使用enum VDDIO_KEEP_TYPE配置)
     PCONTROL_PD_WDVDD_LEV,					//pdown wvdd挡位
+    PCONTROL_PD_DVDD_LEV,					//pdown dvdd挡位
     PCONTROL_PD_KEEP_LPCTMU,				//pdown 触摸是否保持 0：不保持 1：保持
 
     //*****************************************************
@@ -108,19 +109,15 @@ enum PCONTROL_CMD {
     PCONTROL_SF_KEEP_PVDD,					//soff pvdd是否保持 0：不保持 1：保持
 
     //*****************************************************
-    /* 以下配置为对应子模块的预留配置，请使用对应枚举
+    /* 以下配置为对应子模块的预留配置
      */
+    PCONTROL_PHW_RESERVE = 0x100,		   //使用enum POWER_MODE配置
     PCONTROL_P33_RESERVE = 0x200,		   //使用PCONTROL_P33_CMD配置
     PCONTROL_P11_RESERVE = 0x300,		   //使用PCONTROL_P11_CMD配置
     PCONTROL_LP_FLOW_IC_RESERVE = 0x400,   //使用PCONTROL_IC_CMD配置
 };
 
-enum PCONTROL_IC_CMD {
-    PCONTROL_DCDC_MODE = 0x400,
-
-};
-
-u32 power_control(u32 cmd, u32 arg);
+u32 power_control(enum PCONTROL_CMD cmd, u32 arg);
 
 void lowpower_init();
 
@@ -155,7 +152,7 @@ void lowpower_dump();
 //******************************************************************
 #include "pmu_flag.h"
 
-void power_set_soft_poweroff();
+void power_set_soft_poweroff(void);
 
 void mask_softflag_config(struct app_soft_flag_t *softflag);
 

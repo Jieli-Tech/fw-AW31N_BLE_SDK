@@ -107,8 +107,8 @@ DEFINES := \
 	-DSUPPORT_MS_EXTENSIONS \
 	-DSUPPORT_RESERVATION_RAM \
 	-DAPP_CASE_HID \
-	-DSDK_VERSION_CFG_DEFINE=0x100003 \
-	-DSDK_VERSION_DATE_DEFINE=20240419 \
+	-DSDK_VERSION_CFG_DEFINE=0x110003 \
+	-DSDK_VERSION_DATE_DEFINE=20240717 \
 	-DCONFIG_RELEASE_ENABLE \
 	-DHAS_VFS_EN=1 \
 	-DNOFLOAT \
@@ -122,7 +122,14 @@ INCLUDES := \
 	-I../../../../../apps/app/bsp/common/bt_common \
 	-I../../../../../apps/include_lib/update \
 	-I../../../../../apps/include_lib/update/code_v2 \
+	-I../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp/rcsp_update \
+	-I../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp/rcsp_hid \
+	-I../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp \
+	-I../../../../../apps/app/bsp/common/third_party_profile/common \
+	-I../../../../../apps/include_lib/bt_include/third_party/rcsp \
+	-I../../../../../apps/examples/hid/include \
 	-I../../../../../apps/app/bsp \
+	-I../../../../../apps/app/bsp/start \
 	-I../../../../../apps/app/bsp/common/interphone \
 	-I../../../../../apps/app/bsp/common/key \
 	-I../../../../../apps/app/bsp/common/usb \
@@ -140,18 +147,18 @@ INCLUDES := \
 	-I../../../../../apps/include_lib/bt_controller_include/port/bd47 \
 	-I../../../../../apps/include_lib/bt_include \
 	-I../../../../../apps/include_lib/bt_include/third_party/common \
-	-I../../../../../apps/lib/bt_controller \
-	-I../../../../../apps/lib/bt_protocol \
+	-I../../../../../apps/include_lib/config \
 	-I../../../../../apps/include_lib/dev_mg \
-	-I../../../../../apps/include_lib/sound_effect_list \
-	-I../../../../../apps/include_lib/bt_include/third_party/rcsp \
 	-I../../../../../apps/app/bsp/common/third_party_profile/jieli \
-	-I../../../../../apps/app/bsp/common/third_party_profile/common \
 	-I../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common \
-	-I../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp \
 	-I../../../../../apps/app/bsp/common/temp_trim \
 	-I../../../../../apps/demo/hid \
 	-I../../../../../apps/demo/hid/include \
+	-I../../../../../apps/app/bsp/common/usb/device \
+	-I../../../../../apps/app/bsp/common/usb/host \
+	-I../../../../../apps/include_lib/device/usb \
+	-I../../../../../apps/include_lib/device/usb/device \
+	-I../../../../../apps/include_lib/device/usb/host \
 	-I../../../../../apps/demo \
 	-I../../../../../apps/include_lib \
 	-I../../../../../apps/app/post_build/bd47 \
@@ -160,7 +167,6 @@ INCLUDES := \
 	-I../../../../../apps/include_lib/cpu \
 	-I../../../../../apps/maske_include \
 	-I../../../../../apps/app/bsp/lib \
-	-I../../../../../apps/app/bsp/start \
 	-I../../../../../apps/app/bsp/cpu/bd47/entry \
 	-I../../../../../apps/app/bsp/common \
 	-I../../../../../apps/app/bsp/device \
@@ -173,8 +179,6 @@ INCLUDES := \
 	-I../../../../../apps/include_lib/device \
 	-I../../../../../apps/include_lib/device/sdmmc \
 	-I../../../../../apps/include_lib/device/norflash \
-	-I../../../../../apps/libs/bt_controller/include \
-	-I../../../../../apps/libs/cpu/bd47 \
 	-I../../../../../apps/demo/hid/board/bd47 \
 	-I../../../../../apps/demo/hid/modules/bt \
 	-I$(SYS_INC_DIR) \
@@ -189,36 +193,67 @@ c_SRC_FILES := \
 	../../../../../apps/app/bsp/common/fs/vfs.c \
 	../../../../../apps/app/bsp/common/fs/vfs_fat.c \
 	../../../../../apps/app/bsp/common/fs/vfs_resource.c \
+	../../../../../apps/app/bsp/common/ir/ir_decoder.c \
 	../../../../../apps/app/bsp/common/ir/ir_encoder.c \
 	../../../../../apps/app/bsp/common/key/key.c \
 	../../../../../apps/app/bsp/common/key/key_drv_ad.c \
 	../../../../../apps/app/bsp/common/key/key_drv_io.c \
 	../../../../../apps/app/bsp/common/key/key_drv_matrix.c \
 	../../../../../apps/app/bsp/common/led/led_control.c \
+	../../../../../apps/app/bsp/common/ledc/ledc.c \
+	../../../../../apps/app/bsp/common/ledc/ledc_demo.c \
 	../../../../../apps/app/bsp/common/mouse_sensor/OMSensor_manage.c \
 	../../../../../apps/app/bsp/common/mouse_sensor/hal3205/hal3205.c \
+	../../../../../apps/app/bsp/common/mouse_sensor/hal3212/hal3212.c \
 	../../../../../apps/app/bsp/common/msg/msg.c \
+	../../../../../apps/app/bsp/common/msg/sys_event.c \
 	../../../../../apps/app/bsp/common/my_malloc.c \
 	../../../../../apps/app/bsp/common/power_manage/app_power_mg.c \
+	../../../../../apps/app/bsp/common/rdec_soft/rdec_soft.c \
+	../../../../../apps/app/bsp/common/rtc/rtc_demo.c \
 	../../../../../apps/app/bsp/common/sys_memory/sys_memory.c \
 	../../../../../apps/app/bsp/common/tab_read.c \
 	../../../../../apps/app/bsp/common/temp_trim/adc_dtemp_alog.c \
 	../../../../../apps/app/bsp/common/temp_trim/dtemp_pll_trim.c \
+	../../../../../apps/app/bsp/common/third_party_profile/common/custom_cfg.c \
+	../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp/rcsp_bluetooth.c \
+	../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp/rcsp_hid/rcsp_hid_inter.c \
+	../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp/rcsp_msg.c \
+	../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp/rcsp_update/rcsp_ch_loader_download.c \
+	../../../../../apps/app/bsp/common/third_party_profile/jieli/JL_rcsp/rcsp_update/rcsp_user_update.c \
 	../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common/le_gatt_client.c \
 	../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common/le_gatt_common.c \
 	../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common/le_gatt_server.c \
 	../../../../../apps/app/bsp/common/update/testbox_uart_update.c \
 	../../../../../apps/app/bsp/common/update/testbox_update.c \
 	../../../../../apps/app/bsp/common/update/update.c \
+	../../../../../apps/app/bsp/common/usb/device/cdc.c \
+	../../../../../apps/app/bsp/common/usb/device/custom_hid.c \
+	../../../../../apps/app/bsp/common/usb/device/descriptor.c \
+	../../../../../apps/app/bsp/common/usb/device/hid_keyboard.c \
+	../../../../../apps/app/bsp/common/usb/device/hid_media.c \
+	../../../../../apps/app/bsp/common/usb/device/hid_mouse.c \
+	../../../../../apps/app/bsp/common/usb/device/msd.c \
+	../../../../../apps/app/bsp/common/usb/device/msd_upgrade.c \
+	../../../../../apps/app/bsp/common/usb/device/task_pc.c \
+	../../../../../apps/app/bsp/common/usb/device/uac1.c \
+	../../../../../apps/app/bsp/common/usb/device/usb_device.c \
+	../../../../../apps/app/bsp/common/usb/device/usb_device_config.c \
+	../../../../../apps/app/bsp/common/usb/device/usb_suspend_resume.c \
+	../../../../../apps/app/bsp/common/usb/device/user_setup.c \
 	../../../../../apps/app/bsp/common/vm/nvm_api.c \
 	../../../../../apps/app/bsp/common/vm/vm_api.c \
 	../../../../../apps/app/bsp/cpu/bd47/adc_api.c \
+	../../../../../apps/app/bsp/cpu/bd47/cpu_debug.c \
 	../../../../../apps/app/bsp/cpu/bd47/device.c \
+	../../../../../apps/app/bsp/cpu/bd47/led/led_api.c \
+	../../../../../apps/app/bsp/cpu/bd47/led/led_api_test.c \
+	../../../../../apps/app/bsp/cpu/bd47/led/pwm_led.c \
 	../../../../../apps/app/bsp/cpu/bd47/my_print.c \
 	../../../../../apps/app/bsp/cpu/bd47/power/extern_dcdc/extern_dcdc.c \
 	../../../../../apps/app/bsp/cpu/bd47/power/power_app.c \
 	../../../../../apps/app/bsp/cpu/bd47/power/power_config.c \
-	../../../../../apps/app/bsp/cpu/bd47/power_app.c \
+	../../../../../apps/app/bsp/cpu/bd47/power_api.c \
 	../../../../../apps/app/bsp/cpu/bd47/tick_timer_sys.c \
 	../../../../../apps/app/bsp/cpu/bd47/uart.c \
 	../../../../../apps/app/bsp/device/device_app.c \
@@ -229,6 +264,7 @@ c_SRC_FILES := \
 	../../../../../apps/demo/hid/app_main.c \
 	../../../../../apps/demo/hid/board/bd47/board_aw312a_rc.c \
 	../../../../../apps/demo/hid/board/bd47/board_aw313a_mouse.c \
+	../../../../../apps/demo/hid/board/bd47/board_aw313a_mouse_single.c \
 	../../../../../apps/demo/hid/board/bd47/board_aw31n_demo.c \
 	../../../../../apps/demo/hid/config/lib_btctrler_config.c \
 	../../../../../apps/demo/hid/config/lib_btstack_config.c \
@@ -237,10 +273,13 @@ c_SRC_FILES := \
 	../../../../../apps/demo/hid/config/lib_system_config.c \
 	../../../../../apps/demo/hid/config/lib_update_config.c \
 	../../../../../apps/demo/hid/config/log_config.c \
+	../../../../../apps/demo/hid/examples/idle/app_idle.c \
 	../../../../../apps/demo/hid/examples/keyboard/app_keyboard.c \
 	../../../../../apps/demo/hid/examples/keyfob/app_keyfob.c \
 	../../../../../apps/demo/hid/examples/keypage/app_keypage.c \
-	../../../../../apps/demo/hid/examples/mouse_single/app_mouse.c \
+	../../../../../apps/demo/hid/examples/mouse_dual/app_mouse_dual.c \
+	../../../../../apps/demo/hid/examples/mouse_dual/mouse_usb.c \
+	../../../../../apps/demo/hid/examples/mouse_single/app_mouse_single.c \
 	../../../../../apps/demo/hid/examples/remote_control/app_remote_control.c \
 	../../../../../apps/demo/hid/modules/app_comm_proc.c \
 	../../../../../apps/demo/hid/modules/bt/app_comm_ble.c \
@@ -293,6 +332,8 @@ LFLAGS := \
 	../../../../../apps/include_lib/liba/bd47/flash/new_vm_lib.a \
 	../../../../../apps/include_lib/liba/bd47/flash/printf_lib.a \
 	../../../../../apps/include_lib/liba/bd47/flash/dev_mg_lib.a \
+	../../../../../apps/include_lib/liba/bd47/flash/lib_ima_stream_decode.a \
+	../../../../../apps/include_lib/liba/bd47/flash/lib_sbc_stddec.a \
 	--end-group \
 	-T../../../../../apps/app/post_build/bd47/app.ld \
 	-M=../../../../../apps/app/post_build/bd47/app.map \

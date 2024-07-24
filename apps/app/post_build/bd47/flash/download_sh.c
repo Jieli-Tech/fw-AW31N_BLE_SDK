@@ -17,8 +17,9 @@ ${OBJSIZEDUMP} -lite -skip-zero -enable-dbg-info ${1}.elf | sort -k 4 -r >  ${1}
 ${OBJCOPY} -O binary -j .app_code $1.elf  $1.bin
 ${OBJCOPY} -O binary -j .data $1.elf  data.bin
 ${OBJCOPY} -O binary -j .lowpower_overlay $1.elf  lowpower_overlay.bin
+${OBJCOPY} -O binary -j .update_overlay $1.elf  update_overlay.bin
 ${OBJDUMP} -section-headers  $1.elf
-cat $1.bin data.bin lowpower_overlay.bin > app.bin
+cat $1.bin data.bin lowpower_overlay.bin update_overlay.bin > app.bin
 
 /* #include "app_config.h" */
 //host-client -project ${NICKNAME} -mode flash_debug -f app.bin $1.elf isd_config.ini uboot.boot bd49loader.bin

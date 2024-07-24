@@ -1,6 +1,7 @@
 #include "app_config.h"
 #include "adc_api.h"
 #include "key.h"
+#include "init.h"
 #include "key_drv_io.h"
 
 #ifdef CONFIG_BOARD_AW31N_DEMO
@@ -48,27 +49,40 @@ const struct iokey_platform_data iokey_data = {
 };
 
 #endif  /* #if TCFG_IO_KEY_ENABLE */
+
 /************************** SOFTOFF IO PROTECT****************************/
 void gpio_config_soft_poweroff(void)
 {
     PORT_TABLE(g);
-
-#if KEY_AD_EN
-    PORT_PROTECT(AD_KEY_IO);
-#endif
 
 #if KEY_IO_EN
     PORT_PROTECT(TCFG_IOKEY_POWER_ONE_PORT);
     PORT_PROTECT(TCFG_IOKEY_PREV_ONE_PORT);
 #endif
 
+#if KEY_AD_EN
+    PORT_PROTECT(AD_KEY_IO);
+#endif
+
+#if CONFIG_APP_AT_CHAR_COM
+    PORT_PROTECT(UART_DB_RX_PIN);
+#endif
+
     __port_init((u32)gpio_config);
 }
 /************************** SOFTOFF IO PROTECT****************************/
 
+// 软关机前需要做的操作可以放到这个函数
+void set_before_softoff(void)
+{
+    log_info(">>>> set before softoff");
+    gpio_config_soft_poweroff();
+}
+
+platform_uninitcall(set_before_softoff);
 
 /************************** IO WAKE UP CONFIG****************************/
-#define        WAKE_IO_MAX_NUMS                 3
+#define        WAKE_IO_MAX_NUMS                 4
 static struct _p33_io_wakeup_config keys_config[WAKE_IO_MAX_NUMS];
 static void init_key_io_wakeup(const struct _p33_io_wakeup_config *config)
 {
@@ -103,6 +117,11 @@ void key_wakeup_init()
                            PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
 #endif
 
+#if CONFIG_APP_AT_CHAR_COM
+    void at_char_wake_up_set();
+    keys_config[index++] = create_key_io_wakeup_config(UART_DB_RX_PIN, PORT_INPUT_FLOATING,
+                           PORT_FLT_DISABLE, FALLING_EDGE, at_char_wake_up_set);
+#endif
     // 初始化和启用IO唤醒
     for (u8 i = 0; i < index; i++) {
         init_key_io_wakeup(&keys_config[i]);

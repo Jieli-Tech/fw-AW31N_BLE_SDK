@@ -1,10 +1,19 @@
 #ifndef  __GPTIMER_HW_H__
 #define  __GPTIMER_HW_H__
 
+#include "cpu.h"
+typedef JL_TIMER_TypeDef    GPTIMER;
+#define GPTIMER0    JL_TIMER0
+#define GPTIMER1    JL_TIMER1
+#define GPTIMER2    JL_TIMER2
+#define GPTIMER3    JL_TIMER3
+
 #define TIMER_MAX_NUM   4
-#define TIMER_BASE_ADDR JL_TIMER0
-#define TIMER_OFFSET    (JL_TIMER1 - JL_TIMER0)
-#define TIMER_PRD_SIZE  0xFFFF
+#define TIMER_BASE_ADDR GPTIMER0
+#define TIMER_OFFSET    (GPTIMER1 - GPTIMER0)
+#define TIMER_CNT_SIZE  0xFFFFFFFF
+#define TIMER_PRD_SIZE  0xFFFFFFFF
+#define TIMER_PWM_SIZE  0xFFFFFFFF
 
 /* JL_TIMERx->CON */
 #define TIMER_MODE              0b11
@@ -51,6 +60,13 @@ typedef struct _irfltx_con_reg {
 #define IRFLT_TSRC_             0xc //时钟源
 #define IRFLT_PSEL_             0xf0 //分频系数
 
+typedef enum gptimerx : u8 {
+    TIMER0 = 0,
+    TIMER1,
+    TIMER2,
+    TIMER3,
+    TIMERx, //传入此参数时,内部自动分配一个空闲TIMER
+} timer_dev;
+
+
 #endif
-
-

@@ -464,6 +464,15 @@ static int multi_client_event_packet_handler(int event, uint8_t *packet, uint16_
 
     case GATT_COMM_EVENT_DISCONNECT_COMPLETE:
         log_info("disconnect_handle:%04x,reason= %02x\n", little_endian_read_16(packet, 0), packet[2]);
+
+        //TODO 可以推msg到app处理
+#if (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        if (app_power_soft.wait_disconn) {
+            app_power_soft.wait_disconn = 0;
+            app_power_set_soft_poweroff(NULL);
+        }
+#endif
+
         break;
 
     case GATT_COMM_EVENT_ENCRYPTION_CHANGE:

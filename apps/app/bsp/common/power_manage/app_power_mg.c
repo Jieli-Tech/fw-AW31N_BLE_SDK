@@ -1,11 +1,12 @@
-#include "power_interface.h"
 #include "app_power_mg.h"
-#include "app_config.h"
 #include "adc_api.h"
 #include "key.h"
 #include "clock.h"
 #include "led_control.h"
 #include "app_main.h"
+#include "sys_timer.h"
+#include "tick_timer_driver.h"
+#include "msg.h"
 
 #define LOG_TAG_CONST     NORM
 #define LOG_TAG           "[app_power]"
@@ -21,15 +22,19 @@ static uint16_t app_power_lvd_warning;
 static uint16_t app_power_vbat_voltage;
 static uint16_t app_power_vbat_check_timer = 0;
 
-extern struct application *main_application_operation_event(struct application *app, struct sys_event *event);
+extern void ble_module_enable(u8 en);
 void app_power_event_to_user(uint8_t event)
 {
-    struct sys_event e;
-    e.type = SYS_DEVICE_EVENT;
-    e.arg  = (void *)DEVICE_EVENT_FROM_POWER;
-    e.u.dev.event = event;
-    e.u.dev.value = 0;
-    main_application_operation_event(NULL, &e);
+    struct sys_event *e = event_pool_alloc();
+    if (e == NULL) {
+        log_info("Memory allocation failed for sys_event");
+        return;
+    }
+    e->type = SYS_DEVICE_EVENT;
+    e->arg  = (void *)DEVICE_EVENT_FROM_POWER;
+    e->u.dev.event = event;
+    e->u.dev.value = 0;
+    main_application_operation_event(NULL, e);
 }
 
 int app_power_event_handler(struct device_event *dev, void (*set_soft_poweroff_call)(void))
@@ -67,10 +72,48 @@ void app_power_set_lvd(uint16_t lvd_value)
     app_power_lvd_warning = lvd_value;
 }
 
+#if (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+__attribute__((weak))
+void app_to_recover(void)
+{
+
+}
+
+static void soft_by_power_mode(void)
+{
+    sys_timeout_del(app_power_soft.power_soft_handle);//删除sys_timer没来得及处理的timer
+    /* sys_timer_exit();//关闭sys_timer */
+    app_power_soft.power_soft_handle = 0;
+    app_power_soft.power_soft_flag |= BIT(0);
+    extern void sys_power_down(u32 usec);
+    putchar('{');
+    sys_power_down(LOW_POWER_KEEP);//sys set no wukeup time
+}
+
+void power_wakeup_init(void)
+{
+    if (app_power_soft.power_soft_flag) {
+        putchar('}');
+        app_power_soft.power_soft_flag &= ~BIT(0);
+        //open bt
+        wdt_init(WDT_8S);
+        /* sys_timer_init(); */
+        ble_module_enable(1);
+        app_to_recover();
+    }
+}
+#endif
+
 void app_power_set_soft_poweroff(void *priv)
 {
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
     log_info(">>>>>>>Enter softoff");
     power_set_soft_poweroff();
+#elif (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+    log_info(">>>>>>>Enter softoff by poweroff");
+    key_active_num_set(0);
+    app_power_soft.power_soft_handle = sys_timeout_add(NULL, soft_by_power_mode, LOW_POWER_SOFTOFF_BT_EXIT_TIME);//等待蓝牙基带close
+#endif
 }
 
 static void app_power_lvd_warning_init(void)

@@ -5,11 +5,11 @@
 //-------------------------------------------------------------------
 /*config
  */
-#define CONFIG_UART_DEBUG_ENABLE	UART_DEBUG//CONFIG_DEBUG_ENABLE
+#define PCONFIG_UART_DEBUG_ENABLE	UART_DEBUG
 #ifdef TCFG_UART0_TX_PORT
-#define CONFIG_UART_DEBUG_PORT		TCFG_UART0_TX_PORT
+#define PCONFIG_UART_DEBUG_PORT		TCFG_UART0_TX_PORT
 #else
-#define CONFIG_UART_DEBUG_PORT		-1
+#define PCONFIG_UART_DEBUG_PORT		-1
 #endif
 
 
@@ -55,3 +55,35 @@ const bool pdebug_uart_flowing = 0;
 //使能低功耗耗时检查
 // 1:打印程序执行时间 2:程序执行时间有问题报错
 const bool pdebug_reserve_time = 0;
+
+//-------------------------------------------------------------------
+/* pmu相关模块开关 */
+//使能复位模块
+const bool control_power_reset_mark = 1;
+const bool control_power_soft_reset = 1;
+const bool control_power_pinr_reset = 1;
+const bool control_power_latch_reset = 1;
+const bool control_power_reset = 1;
+
+//使能唤醒模块
+const bool control_power_wakeup_mark = 1;
+const bool control_power_wakeup = 1;
+
+//使能pdown模块
+#if (TCFG_LOWPOWER_LOWPOWER_SEL)
+const bool control_pdown = 1;
+#else
+const bool control_pdown = 0;
+#endif
+
+//使能soff模块
+const bool control_soff = TCFG_LOWPOWER_SOFF;
+
+//使能poff模块
+#if (TCFG_LOWPOWER_LOWPOWER_SEL==DEEP_SLEEP_EN)
+const bool control_poff = 1;
+#else
+const bool control_poff = 0;
+#endif
+
+

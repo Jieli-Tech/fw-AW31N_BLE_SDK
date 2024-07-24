@@ -10,6 +10,7 @@
 #include "dev_mg/atomic.h"
 #include "cpu/uart.h"
 #include "list.h"
+#include "assert_d.h"
 // #include "printf.h"
 // #include "string.h"
 // #include "uart.h"

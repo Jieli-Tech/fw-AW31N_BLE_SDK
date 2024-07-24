@@ -97,12 +97,7 @@ static void noconn_bt_start()
     uint32_t sys_clk =  clk_get("sys");
     bt_pll_para(TCFG_CLOCK_OSC_HZ, sys_clk, 0, 0);
 
-#if TCFG_NORMAL_SET_DUT_MODE
-    clk_set("sfc", TCFG_CLOCK_DUT_SFC_HZ);
-    user_sele_dut_mode(1);
-#else
     btstack_ble_start_before_init(NULL, 0);
-#endif
     cfg_file_parse(0);
     btstack_init();
 }
@@ -140,7 +135,7 @@ static void noconn_app_start()
     led_operate(LED_INIT);
 #endif
 
-    int msg[2]   = {0};
+    int msg[4]   = {0};
     while (1) {
         get_msg(sizeof(msg) / sizeof(int), msg);
         app_comm_process_handler(msg);

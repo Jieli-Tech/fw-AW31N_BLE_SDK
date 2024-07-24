@@ -67,7 +67,6 @@ static const u16 event2msg[] = {
     MSG_BLE_APP_UPDATE_START,		/* 36 */
     MSG_BLE_TESTBOX_UPDATE_START,	/* 37 */
     MSG_UART_TESTBOX_UPDATE_START,	/* 38 */
-
     NO_MSG,
 };
 
@@ -94,8 +93,6 @@ void clear_one_event(u32 event)
 
 static u32 get_event(void)
 {
-    u32 i;
-
     CPU_SR_ALLOC();
     OS_ENTER_CRITICAL();
     u32 event_cls;
@@ -179,14 +176,33 @@ int get_msg_phy(int len, int *msg, bool idle)
         return MSG_CBUF_ERROR;
     }
 
+    // 处理 sys_event* 和 dev->ops 指针
+    if (msg[0] == MSG_TYPE_EVENT) {
+        void *event_ptr = NULL;
+        void *ops_ptr = NULL;
+
+        rlen = cbuf_read(&msg_cbuf, (void *)&event_ptr, sizeof(void *));
+        if (sizeof(void *) != rlen) {
+            OS_EXIT_CRITICAL();
+            return MSG_CBUF_ERROR;
+        }
+        msg[param_len + 1] = (int)event_ptr;
+
+        rlen = cbuf_read(&msg_cbuf, (void *)&ops_ptr, sizeof(void *));
+        if (sizeof(void *) != rlen) {
+            OS_EXIT_CRITICAL();
+            return MSG_CBUF_ERROR;
+        }
+        msg[param_len + 2] = (int)ops_ptr;
+    }
     OS_EXIT_CRITICAL();
     return MSG_NO_ERROR;
 }
 
 int get_msg(int len, int *msg)
 {
-    u32 param = 0;
-    u16 *t_msg = (u16 *)&param;
+    /* u32 param = 0; */
+    /* u16 *t_msg = (u16 *)&param; */
     //get_msg
     CPU_SR_ALLOC();
     OS_ENTER_CRITICAL();
@@ -226,22 +242,33 @@ int post_msg(int argc, ...)
     va_list argptr;
     OS_ENTER_CRITICAL();
     va_start(argptr, argc);
-    if (!cbuf_is_write_able(&msg_cbuf, (argc - 1)*sizeof(int) + MSG_HEADER_BYTE_LEN)) {
+
+    int msg = va_arg(argptr, int);
+    size_t additional_size = 0;
+    if (msg == MSG_TYPE_EVENT) {
+        additional_size += 2 * sizeof(void *); // for sys_event* and dev->ops
+    }
+    if (!cbuf_is_write_able(&msg_cbuf, (argc - 1) * sizeof(int) + additional_size + MSG_HEADER_BYTE_LEN)) {
         OS_EXIT_CRITICAL();
+        va_end(argptr);
+        putchar('f');
         return MSG_BUF_NOT_ENOUGH;
     }
 
-    t_msg[0] = (MSG_HEADER_ALL_BIT >> MSG_PARAM_BIT_LEN) & va_arg(argptr, int);
+    t_msg[0] = (MSG_HEADER_ALL_BIT >> MSG_PARAM_BIT_LEN) & msg;
     t_msg[0] = ((argc - 1) << (MSG_TYPE_BIT_LEN)) | t_msg[0];
-
-    /* if (t_msg[0] != MSG_500MS) { */
-    /*     log_info(">>> %d msg post 0x%x\n", msg_test_num++, t_msg[0]); */
-    /* } */
     cbuf_write(&msg_cbuf, (void *)&t_msg[0], MSG_HEADER_BYTE_LEN);
 
     for (u32 i = 0; i < argc - 1; i++) {
         param = va_arg(argptr, int);
         cbuf_write(&msg_cbuf, (void *)&param, sizeof(int));
+    }
+
+    if (msg == MSG_TYPE_EVENT) {
+        void *event_ptr = va_arg(argptr, void *);
+        void *ops_ptr = va_arg(argptr, void *);
+        cbuf_write(&msg_cbuf, &event_ptr, sizeof(void *));
+        cbuf_write(&msg_cbuf, &ops_ptr, sizeof(void *));
     }
     va_end(argptr);
     OS_EXIT_CRITICAL();

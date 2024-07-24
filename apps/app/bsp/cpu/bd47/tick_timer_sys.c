@@ -17,11 +17,16 @@
 #define LOG_TAG             "[tick]"
 #include "log.h"
 
-volatile u32 jiffies = 0;
-volatile u32 jiffies_2ms = 0;
+//default 0
+volatile u32 jiffies;
+volatile u32 jiffies_2ms;
+static u32 reserve;
+static u32 reserve_2ms;
 u8 tick_cnt;
-extern void app_timer_loop(void);
+
 extern struct key_driver_para key_scan_para;
+extern void app_timer_loop(void);
+
 /* ticktimer定时任务公共处理函数,tick_cnt只能由该函数改变 */
 void tick_timer_loop(void)
 {
@@ -57,7 +62,7 @@ void delay_10ms(u32 tick)
         }
     }
 #else
-    mdelay(10);
+    mdelay(tick * 10);
 #endif
 }
 
@@ -65,3 +70,25 @@ void os_time_dly(u32 tick)
 {
     delay_10ms(tick);
 }
+
+//低功耗唤醒后时间补充
+void sleep_tick_compensate_resume(void *priv, u32 usec)
+{
+    //log_info("usec:%d", usec);
+
+    u32 sys_jiffies = maskrom_get_jiffies();
+    u32 tmp_usec = usec + reserve;
+    sys_jiffies = sys_jiffies + (tmp_usec / (1000 * 10));
+    reserve = (tmp_usec % (1000 * 10)); //保留不足10ms的余数
+    maskrom_set_jiffies(sys_jiffies);
+
+    /* 补偿jiffies_2ms */
+    sys_jiffies = maskrom_get_jiffies_2ms();
+    tmp_usec = usec + reserve_2ms;
+    sys_jiffies = sys_jiffies + (tmp_usec / (1000 * 2));
+    reserve_2ms = (tmp_usec % (1000 * 2)); //保留不足2ms的余数
+    maskrom_set_jiffies_2ms(sys_jiffies);
+
+}
+
+

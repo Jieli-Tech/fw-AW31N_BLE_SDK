@@ -21,7 +21,7 @@
 
 static OMSENSOR_PLATFORM_DATA *pdata = NULL;
 static u8 time_count = 0;
-static const u8 timeout = 5;
+static const u8 timeout = 15;
 static u8 configvalue = 0 ;
 static void uSecDelay(u8 len);
 static void frameDelay();

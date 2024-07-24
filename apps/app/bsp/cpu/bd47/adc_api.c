@@ -34,7 +34,7 @@ static u8 adc_ch_io_table[16] = {  //gpio->adc_ch 表
     IO_PORTA_09,
     IO_PORTA_10,
     IO_PORTA_11,
-    /* IO_PORT_FSPG, */
+    IO_PORT_FSPG,
     IO_PORT_DP,
     IO_PORT_DM,
 };
@@ -125,6 +125,19 @@ static void _adc_pmu_ch_select(u16 ch)
     P33_CON_SET(P3_PMU_ADC1, 0, 2, 0b11);
 }
 
+static void _adc_io_ch_select(enum AD_CH ch)
+{
+    if (ch == AD_CH_IO_DP) {
+        gpio_set_mode(PORTUSB, BIT(0), PORT_INPUT_FLOATING);
+        JL_PORTUSB->CON |= BIT(1);
+        udelay(10);
+    } else if (ch == AD_CH_IO_DM) {
+        gpio_set_mode(PORTUSB, BIT(1), PORT_INPUT_FLOATING);
+        JL_PORTUSB->CON |= BIT(3);
+        udelay(10);
+    }
+}
+
 u32 adc_add_sample_ch(enum AD_CH ch)   //添加一个指定的通道到采集队列
 {
     u32 adc_type_sel = ch & ADC_CH_MASK_TYPE_SEL;
@@ -210,6 +223,7 @@ void adc_sample(enum AD_CH ch, u32 ie) //启动一次cpu模式的adc采样
     default:
         SFR(adc_con, 21, 3, 0b001); //cpu adc io sel en
         SFR(adc_con, 8, 4, adc_ch_sel);
+        _adc_io_ch_select(ch);
         break;
     }
     JL_ADC->CON = adc_con;

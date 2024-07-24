@@ -9,6 +9,8 @@ extern volatile u32 jiffies;
 extern volatile u32 jiffies_2ms;
 #define maskrom_get_jiffies_2ms() jiffies_2ms
 #define maskrom_set_jiffies_2ms(n) jiffies_2ms = n
+
+#define SET_TICK_TIME_MS           2//tick_time_irq
 extern void tick_timer_init(void);
 enum tick_timer_state {
     STATE_NOINIT,

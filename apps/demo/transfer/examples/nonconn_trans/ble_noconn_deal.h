@@ -4,14 +4,17 @@
 
 //------------------------------------------------------
 #define CFG_RF_USE_24G_CDOE       1  // 是否使用24识别码
-#define CFG_RF_24G_CODE_ID        0x5555AAAA // 24g 识别码(32bit),发送接收都要匹配:!!!初始化之后任意非连接时刻修改配对码API:rf_set_conn_24g_coded
 
-//配置收发角色
-#define CONFIG_TX_MODE_ENABLE     1 //发射器
-#define CONFIG_RX_MODE_ENABLE     0 //接收器
+#if CFG_RF_USE_24G_CDOE
+#define CFG_RF_ADV_SCAN_CHL       36//0-(默认37，38，39), 其他配置值 1~39
+#define CFG_RF_24G_CODE_ID        0x5DA086D2 // 24g 识别码(32bit),发送接收都要匹配:!!!初始化之后任意非连接时刻修改配对码API:rf_set_conn_24g_coded
+#else
+#define CFG_RF_ADV_SCAN_CHL       0//0-(默认37，38，39), 其他配置值 1~39
+#define CFG_RF_24G_CODE_ID        0//
+#endif
 
-#define GATT_ROLE_CLIENT         1
-#define GATT_ROLE_SERVER         0
+#define GATT_ROLE_CLIENT          1
+#define GATT_ROLE_SERVER          0
 
 //------------------------------------------------------
 //TX发送配置
@@ -21,6 +24,7 @@
 #define ADV_INTERVAL_VAL          ADV_SCAN_MS(TX_DATA_INTERVAL)//unit: 0.625ms
 #define RSP_TX_HEAD               0xff
 
+#define TX_TEST_SEND_MODE         0 //test 定时发送adv
 
 //------------------------------------------------------
 //RX接收配置

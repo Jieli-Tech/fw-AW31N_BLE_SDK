@@ -30,6 +30,12 @@
 #include "led_control.h"
 #include "common_uart_control.h"
 #include "user_cfg.h"
+#if RCSP_BTMATE_EN
+#include "custom_cfg.h"
+#include "rcsp_bluetooth.h"
+#include "JL_rcsp_api.h"
+#include "code_v2/update_loader_download.h"
+#endif
 
 #if (CONFIG_APP_LE_TRANS)
 #define LOG_TAG_CONST       BLE_TRANS
@@ -168,7 +174,7 @@ static void trans_resume_all_ccc_enable(uint16_t conn_handle, uint8_t update_req
     log_info("resume_all_ccc_enable\n");
 
 #if RCSP_BTMATE_EN
-    ble_gatt_server_characteristic_ccc_set(conn_handle, ATT_CHARACTERISTIC_ae02_02_CLIENT_CONFIGURATION_HANDLE, ATT_OP_NOTIFY);
+    /* ble_gatt_server_characteristic_ccc_set(conn_handle, ATT_CHARACTERISTIC_ae02_02_CLIENT_CONFIGURATION_HANDLE, ATT_OP_NOTIFY); */
 #endif
     ble_gatt_server_characteristic_ccc_set(conn_handle, ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE, ATT_OP_NOTIFY);
     ble_gatt_server_characteristic_ccc_set(conn_handle, ATT_CHARACTERISTIC_ae04_01_CLIENT_CONFIGURATION_HANDLE, ATT_OP_NOTIFY);
@@ -257,6 +263,14 @@ static int trans_event_packet_handler(int event, uint8_t *packet, uint16_t size,
         break;
 
     case GATT_COMM_EVENT_DISCONNECT_COMPLETE:
+        //TODO 可以推msg到app处理
+#if (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        if (app_power_soft.wait_disconn) {
+            app_power_soft.wait_disconn = 0;
+            app_power_set_soft_poweroff(NULL);
+        }
+#endif
+
 #if TCFG_LED_ENABLE
         led_set_connect_flag(0);
         led_operate(LED_WAIT_CONNECT);
@@ -497,6 +511,11 @@ static int trans_att_write_callback(hci_con_handle_t connection_handle, uint16_t
     case ATT_CHARACTERISTIC_ae02_02_CLIENT_CONFIGURATION_HANDLE:
         ble_op_latency_skip(connection_handle, 0xffff); //
         ble_gatt_server_set_update_send(connection_handle, ATT_CHARACTERISTIC_ae02_02_VALUE_HANDLE, ATT_OP_AUTO_READ_CCC);
+#if (defined(BT_CONNECTION_VERIFY) && (0 == BT_CONNECTION_VERIFY))
+        JL_rcsp_auth_reset();       //hid设备试能nofity的时候reset auth保证APP可以重新连接
+#endif
+        rcsp_init();
+        rcsp_dev_select(RCSP_BLE);
 #endif
         /* trans_send_connetion_updata_deal(connection_handle); */
         log_info("------write ccc:%04x,%02x\n", handle, buffer[0]);

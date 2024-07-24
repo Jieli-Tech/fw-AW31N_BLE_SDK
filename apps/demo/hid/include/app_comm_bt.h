@@ -3,7 +3,7 @@
 
 #include "typedef.h"
 // #include "system/event.h"
-#include "avctp_user.h"
+#include "app_main.h"
 
 enum {
     SNIFF_MODE_DEF = 0,

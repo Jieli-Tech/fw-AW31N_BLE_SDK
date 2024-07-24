@@ -3,6 +3,7 @@
 
 #include "typedef.h"
 #include "power_interface.h"
+#include "assert_d.h"
 
 
 #define IO_GROUP_NUM 		16
@@ -46,7 +47,7 @@
 // #define IO_PORT_PP_MASK              0x0000
 // #define IO_PORT_LDOIN   IO_PORTP_00
 
-#define IO_MAX_NUM                  (IO_PORTF_00 + 1)
+#define IO_MAX_NUM                  (IO_PORTF_03 + 1)
 
 #define IO_PORT_DP                  (IO_GROUP_NUM * 14 + 0)
 #define IO_PORT_DM                  (IO_GROUP_NUM * 14 + 1)
@@ -84,6 +85,10 @@ enum gpio_port {
     PORTUSB = 14,
     // PORTR = 15,  //bd47 无pr
 };
+#define IS_PORT_ALL_PERIPH(PORT) (((PORT) == PORTA) || \
+                                  ((PORT) == PORTF) || \
+                                  ((PORT) == PORTUSB))
+
 enum port_op_mode {
     PORT_SET = 1,
     PORT_AND,
@@ -367,8 +372,8 @@ enum gpio_function {
     PORT_FUNC_MCPWM1_FP,
     // PORT_FUNC_MCPWM2_FP,
 
-    // PORT_FUNC_LEDC0_OUT,
-    // PORT_FUNC_LEDC1_OUT,
+    PORT_FUNC_LEDC0_OUT,
+    PORT_FUNC_LEDC1_OUT,
     // PORT_FUNC_RDEC0_PORT0,
     // PORT_FUNC_RDEC0_PORT1,
     PORT_FUNC_QDEC0_SIN0,
@@ -426,6 +431,7 @@ enum gpio_function {
 #define GPIO_LOG_PORTR R3_PR_OUT,R3_PR_DIR,R3_PR_DIE,R3_PR_OUT,R3_PR_PU0,R3_PR_PU1,R3_PR_PD0,R3_PR_PD1,R3_PR_HD0,R3_PR_HD1
 #endif
 #ifdef GPIOUSB
+#define GPIO_LOG_FORMAT_U "0x%04x  0x%04x  0x%04x  0x%04x  0x%04x,%s  0x%04x,%s  %s,%s  0x%04x"
 #define GPIO_LOG_PORTU _portx(PU,out),_portx(PU,dir),_portx(PU,die),_portx(PU,dieh),_portx(PU,pu0),GPIO_NO_SUPPORT_FUN,_portx(PU,pd0),GPIO_NO_SUPPORT_FUN,GPIO_NO_SUPPORT_FUN,GPIO_NO_SUPPORT_FUN,_portx(PU,spl)
 #endif
 
@@ -459,6 +465,7 @@ int get_gpio(const char *p);//return <0:error
 
 /**************************************************************/
 /*********************multi pin interface***************************/
+int gpio_hw_port_pin_judge(const enum gpio_port port, u32 pin);
 /**
  * @brief port_set_direction
  *

@@ -8,7 +8,6 @@
 #define LOG_TAG             "[key]"
 #include "log.h"
 
-extern struct application *main_application_operation_event(struct application *app, struct sys_event *event);
 #if KEY_IO_EN
 #include "key_drv_io.h"
 #endif
@@ -145,7 +144,7 @@ void key_driver_scan(void *_scan_para)
     uint8_t key_event = 0;
     uint8_t cur_key_value = NO_KEY;
     uint8_t key_value = 0;
-    struct sys_event e;
+
     static uint8_t poweron_cnt = 0;
 
     //为了滤掉adkey与mic连在一起时电容充放电导致的开机按键误判,一般用于type-c耳机
@@ -156,7 +155,7 @@ void key_driver_scan(void *_scan_para)
     key = get_key_value();
     cur_key_value = key.key_num;
     /* if (cur_key_value != NO_KEY) { */
-    /*     printf(">>>cur_key_value: %d\n", cur_key_value); */
+    /*     log_info(">>>cur_key_value: %d\n", cur_key_value); */
     /* } */
 
     if (cur_key_value != NO_KEY) {
@@ -265,18 +264,24 @@ void key_driver_scan(void *_scan_para)
 
 _notify:
     key_value &= ~BIT(7);  //BIT(7) 用作按键特殊处理的标志
-    e.type = SYS_KEY_EVENT;
-    e.u.key.init = 1;
-    e.u.key.type = key.key_type;//区分按键类型
-    e.u.key.event = key_event;
-    e.u.key.value = key_value;
+    struct sys_event *e = event_pool_alloc();
+    if (e == NULL) {
+        log_info("Memory allocation failed for sys_event");
+        return;
+    }
+
+    e->type = SYS_KEY_EVENT;
+    e->u.key.init = 1;
+    e->u.key.type = key.key_type;//区分按键类型
+    e->u.key.event = key_event;
+    e->u.key.value = key_value;
 
 
     scan_para->click_cnt = 0;  //单击次数清0
     scan_para->notify_value = NO_KEY;
 
-    e.arg  = (void *)DEVICE_EVENT_FROM_KEY;
-    /* printf("key_value: 0x%x, event: %d, key_poweron_flag: %d\n", key_value, key_event, key_poweron_flag); */
+    e->arg  = (void *)DEVICE_EVENT_FROM_KEY;
+    /* log_info("key_value: 0x%x, event: %d, key_poweron_flag: %d\n", key_value, key_event, key_poweron_flag); */
     if (key_poweron_flag) {
         if (key_event == KEY_EVENT_UP) {
             clear_key_poweron_flag();
@@ -284,8 +289,8 @@ _notify:
         }
         return;
     }
-    if (key_event_remap(&e)) {
-        main_application_operation_event(NULL, &e);
+    if (key_event_remap(e)) {
+        main_application_operation_event(NULL, e);
     }
 _scan_end:
     scan_para->last_key = cur_key_value;
@@ -301,6 +306,14 @@ void key_active_set(P33_IO_WKUP_EDGE edge)
     is_key_active = 35;      //35*10Ms
 #endif
 }
+
+void key_active_num_set(u8 key_active)
+{
+#if KEY_AD_EN || KEY_IO_EN || KEY_MATRIX_EN
+    is_key_active = key_active;
+#endif
+}
+
 uint8_t key_idle_query(void)
 {
     return !is_key_active;

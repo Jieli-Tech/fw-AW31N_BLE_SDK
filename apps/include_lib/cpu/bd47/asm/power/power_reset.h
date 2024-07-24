@@ -59,9 +59,35 @@ enum RESET_FLAG {
     LP_OSC_UP_TO,
 };
 
+
+/**
+* @brief  判断是否为指定复位源
+* @param  index: 复位源
+* @retval 1: 是		0：否
+*/
 bool is_reset_source(enum RST_REASON index);
+
+/**
+* @brief  判断是否为指定系统软件复位源
+	指定软件复位源为flag
+	is_system_reset(flag)
+	is_reset_source(flag+P33_EXCEPTION_SOFT_RST)
+
+* @param  index: 软件复位源
+* @retval 1: 是		0：否
+*/
 bool is_system_reset(enum RESET_FLAG flag);
+
+/**
+* @brief  系统软复位，并指定复位信息
+* @param  flag：系统软复位源
+* @retval 1: 是		0：否
+*/
 void system_reset(enum RESET_FLAG flag);
-void p33_soft_reset();
+
+/**
+* @brief  复位的时候锁存模拟模块状态，例如GPIO
+*/
+void latch_reset();
 
 #endif

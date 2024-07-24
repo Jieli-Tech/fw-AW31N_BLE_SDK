@@ -24,6 +24,8 @@ struct sys_timer {
     u32 msec: 24;                   /**< 定时时间，单位：ms */
     u32 del: 1;                     /**< 定时任务是否执行删除标志，置1后在下次任务调度会删除对应任务 */
     u32 timeout: 1;                 /**< 定时任务是否为timeout类型，置1为timeout类型，定时任务执行一次后将自动删除 */
+    u32 running: 1;                 /**< 定时任务是否为执行中*/
+    u32 res: 6;                     /**< reserver*/
     u16 id;                         /**< 定时任务在任务链表中被分配的序号，一般用于定时任务的手动删除或定时时间修改 */
     // u8 used;                        #<{(|*< 定时任务池中任务位置是否被占用, 当所有任务位置都被占用时需要通过malloc申请新的任务存放空间。|)}>#
 #if SYS_TIEMR_DEBUG
@@ -32,6 +34,7 @@ struct sys_timer {
 };
 
 void sys_timer_init(void);
+void sys_timer_exit(void);
 void *get_system_timer_head(void);
 u16 sys_timer_add(void *priv, void (*func)(void *priv), u32 msec);
 u16 sys_timeout_add(void *priv, void (*func)(void *priv), u32 msec);

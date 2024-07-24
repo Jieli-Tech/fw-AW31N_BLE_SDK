@@ -31,5 +31,9 @@ u8 efuse_get_wvdd_level();
 
 u32 efuse_get_efuse_page(u8 page);
 
+u32 get_chip_version();
+
+#define      CHIP_VERSION_A     0x00
+#define      CHIP_VERSION_B     0x01
 
 #endif  /* EFUSE_H */

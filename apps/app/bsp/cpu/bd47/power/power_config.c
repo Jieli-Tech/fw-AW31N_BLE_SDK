@@ -39,11 +39,14 @@ struct _power_pdata power_pdata = {
 void charge_wakeup_init();
 void key_wakeup_init();
 
+static const char *power_support_type[] = {"IOVDD", "VPWR"};
+
 void board_power_init()
 {
     GPIO_CONFIG_INIT();
 
-    power_control(PCONTROL_POWER_SUPPLY, 1);
+    printf("power_supply: %s", power_support_type[TCFG_POWER_SUPPLY_MODE]);
+    power_control(PCONTROL_POWER_SUPPLY, TCFG_POWER_SUPPLY_MODE);
     power_control(PCONTROL_PD_VDDIO_KEEP, VDDIO_KEEP_TYPE_NORMAL);
     power_control(PCONTROL_SF_VDDIO_KEEP, VDDIO_KEEP_TYPE_NORMAL);
     //power_control(PCONTROL_SF_KEEP_LRC, 1);

@@ -4,7 +4,7 @@
 #include "typedef.h"
 
 #define BT_BTSTACK_CLASSIC                   BIT(0)
-#define BT_BTSTACK_LE_ADV                    BIT(1)
+#define BT_BTSTACK_LE_NOCONN                 BIT(1)
 #define BT_BTSTACK_LE                        BIT(2)
 
 extern const int config_stack_modules;

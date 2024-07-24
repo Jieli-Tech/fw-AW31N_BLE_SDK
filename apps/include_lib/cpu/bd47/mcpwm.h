@@ -58,19 +58,19 @@
 
 
 /* pwm通道选择 */
-typedef enum {
+typedef enum : u8 {
     MCPWM_CH0 = 0,
     MCPWM_CH1,
 } mcpwm_ch_type;
 
 /* 对齐方式选择 */
-typedef enum {
+typedef enum : u8 {
     MCPWM_EDGE_ALIGNED,  ///< 边沿对齐模式
     MCPWM_CENTER_ALIGNED, ///< 中心对齐模式
 } mcpwm_aligned_mode_type;
 
 /* 故障保护触发边沿 */
-typedef enum {
+typedef enum : u8 {
     MCPWM_EDGE_FAILL = 0, //下降沿触发
     MCPWM_EDGE_RISE,  //上升沿触发
     MCPWM_EDGE_DEFAULT = 0xff, //默认会忽略
@@ -95,17 +95,23 @@ typedef struct _mcpwm_timer_reg {
 /* 初始化要用的参数结构体 */
 typedef void (*mcpwm_detect_irq_callback)(u32 ch); //回调函数
 struct mcpwm_config {
-    mcpwm_ch_type ch;                         ///< 选择pwm通道号
-    mcpwm_aligned_mode_type aligned_mode;             ///< PWM对齐方式选择
     u32 frequency;                               		///< 初始共同频率，CH0, CH, CH2,,,,,,
-    u16 duty;                                           ///< 初始占空比，0~10000 对应 0%~100% 。每个通道可以有不同的占空比。互补模式的占空比体现在高引脚的波形上。
+    u32 deadtime_ns; //死驱时间,单位:ns
+
     u16 h_pin;                                           ///< 一个通道的H引脚。
     u16 l_pin;                                           ///< 一个通道的L引脚，不需要则填-1
-    u8 complementary_en;                                ///< 该通道的两个引脚输出的波形。0: 同步， 1: 互补，互补波形的占空比体现在H引脚上
+
+    u16 duty;                                           ///< 初始占空比，0~10000 对应 0%~100% 。每个通道可以有不同的占空比。互补模式的占空比体现在高引脚的波形上。
     u16 detect_port;
-    mcpwm_edge edge;
+
     mcpwm_detect_irq_callback irq_cb;
+
     u16 irq_priority; //默认值优先级1
+    mcpwm_ch_type ch;                         ///< 选择pwm通道号
+    mcpwm_aligned_mode_type aligned_mode;             ///< PWM对齐方式选择
+
+    u8 complementary_en;                                ///< 该通道的两个引脚输出的波形。0: 同步， 1: 互补，互补波形的占空比体现在H引脚上
+    mcpwm_edge edge;
 };
 
 struct mcpwm_info_t {
@@ -122,6 +128,7 @@ void mcpwm_pause(int mcpwm_cfg_id);
 void mcpwm_resume(int mcpwm_cfg_id);
 void mcpwm_set_frequency(int mcpwm_cfg_id, mcpwm_aligned_mode_type align, u32 frequency);
 void mcpwm_set_duty(int mcpwm_cfg_id, u16 duty);
+void mcpwm_set_deadtime_ns(int mcpwm_cfg_id, u32 deadtime_ns);
 void mcpwm_fpnd_clr(u32 ch);
 
 

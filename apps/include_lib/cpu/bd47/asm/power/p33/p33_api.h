@@ -157,7 +157,7 @@ enum VDDIOW_VOL get_vddiow_vol_sel();
 typedef enum {
     LVD_RESET_MODE,		//复位模式
     LVD_EXCEPTION_MODE, //异常模式，进入异常中断
-    //LVD_WAKUP_MODE,     //唤醒模式，进入唤醒中断，callback参数为回调函数
+    LVD_WAKEUP_MODE,     //唤醒模式，进入唤醒中断，callback参数为回调函数
 } LVD_MODE;
 
 typedef enum {
@@ -184,13 +184,7 @@ void lvd_config(LVD_VOL vol, u8 expin_en, LVD_MODE mode, void (*callback));
 void gpio_longpress_pin0_reset_config(u32 pin, u32 level, u32 time, u32 release, enum gpio_mode pullup_down_mode);
 void gpio_longpress_pin1_reset_config(u32 pin, u32 level, u32 time, u32 release);
 
-enum PCONTROL_P33_CMD {
-    PCONTROL_P33 = 0x200,
 
-    //************************************************
-    /* vol set
-     */
-};
 
 //
 //

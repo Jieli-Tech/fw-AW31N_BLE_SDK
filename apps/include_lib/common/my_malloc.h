@@ -78,8 +78,10 @@ typedef enum _mm_type {
 #define traceFREE(pvAddress, uSize)
 #endif
 
+extern const u8 _free_start[];
+extern const u8 _free_end[];
 
-
+#define SYS_HEAP_MALLOC_SIZE    ((u32)&_free_end[0] - (u32)&_free_start[0])
 
 void vPortInit(void *pAddr, uint32_t xLen);
 // void *pvPortMalloc( size_t xWantedSize );
@@ -88,6 +90,8 @@ void *pvPortMalloc(size_t xWantedSize, mm_type type);
 void vPortFree(void *pv);
 void *my_malloc(u32 size, mm_type xType);
 void *my_free(void *pv);
+int my_get_free_size(void);
+size_t xPortGetFreeHeapSize(void);
 // void *my_malloc(u32 size);
 void my_malloc_init(void);
 
@@ -96,5 +100,35 @@ void mem_printf(void);
 void mem_malloc_info_printf(u32 addr, u32 size, mm_type xType);
 void mem_free_info_printf(u32 addr);
 #endif
+
+//libs malloc api
+extern const u8 _nk_ram_malloc_start[];
+extern const u8 _nk_ram_malloc_end[];
+extern const u8 _nv_ram_malloc_start[];
+extern const u8 _nv_ram_malloc_end[];
+extern const u8 _nk_ram_remain_start[];
+extern const u8 nk_ram_end[];
+extern const u8 _nv_ram_remain_start[];
+extern const u8 nv_ram_end[];
+
+
+#define   NK_RAM_MALLOC_START_ADDR   (void*)(_nk_ram_malloc_start)
+#define   NK_RAM_MALLOC_SIZE         (int)(_nk_ram_malloc_end - _nk_ram_malloc_start)
+
+#define   NV_RAM_MALLOC_START_ADDR   (void*)(_nv_ram_malloc_start)
+#define   NV_RAM_MALLOC_SIZE         (int)(_nv_ram_malloc_end - _nv_ram_malloc_start)
+
+#define   NK_RAM_REMAIN_SIZE         (int)(nk_ram_end - _nk_ram_remain_start)
+#define   NV_RAM_REMAIN_SIZE         (int)(nv_ram_end - _nv_ram_remain_start)
+
+
+void *__bt_malloc(int size);
+void __bt_free(void *p);
+void btctler_nv_memory_apply(void);
+
+int __bt_nk_get_free_size(void);
+int __bt_get_free_size(void);
+
+
 #endif
 

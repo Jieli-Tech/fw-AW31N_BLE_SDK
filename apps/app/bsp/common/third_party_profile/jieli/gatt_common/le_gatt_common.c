@@ -25,6 +25,7 @@
 /* #include "custom_cfg.h" */
 #include "bt_include/btstack_event.h"
 #include "le_gatt_common.h"
+#include "msg.h"
 #if CONFIG_APP_OTA_EN
 #include "rcsp_bluetooth.h"
 #include "JL_rcsp_api.h"
@@ -216,6 +217,38 @@ bool ble_comm_dev_is_connected(u8 role)
     return false;
 }
 
+/*************************************************************************************************/
+/*!
+ *  \brief      获取gatt 角色 已有链路个数
+ *
+ *  \param      [in]
+ *
+ *  \return
+ *
+ *  \note
+ */
+/*************************************************************************************************/
+u8 ble_comm_dev_get_connected_nums(u8 role)
+{
+    s8 i, nums = 0;
+    u16 *group_handle;
+    u8 count;
+
+    if (GATT_ROLE_SERVER == role) {
+        group_handle = gatt_server_conn_handle;
+        count = SUPPORT_MAX_GATT_SERVER;
+    } else {
+        group_handle = gatt_client_conn_handle;
+        count = SUPPORT_MAX_GATT_CLIENT;
+    }
+
+    for (i = 0; i < count; i++) {
+        if (group_handle[i]) {
+            nums++;
+        }
+    }
+    return nums;
+}
 
 /*************************************************************************************************/
 /*!
@@ -361,20 +394,19 @@ extern struct application *main_application_operation_event(struct application *
 void ble_comm_bt_evnet_post(u32 arg_type, u8 priv_event, u8 *args, u32 value)
 {
     log_info("%s:%d", __FUNCTION__, arg_type);
-#if CFG_APP_RUN_BY_WHILE
-    //TODO
-#else
-    struct sys_event e;
-    /* e.type = SYS_BT_EVENT; */
-    e.type = 0x0010;
-    e.arg  = (void *)arg_type;
-    e.u.bt.event = priv_event;
-    if (args) {
-        memcpy(e.u.bt.args, args, 7);
+    struct sys_event *e = event_pool_alloc();
+    if (e == NULL) {
+        log_info("Memory allocation failed for sys_event");
+        return;
     }
-    e.u.bt.value = value;
-    main_application_operation_event(NULL, &e);
-#endif
+    e->type = 0x0010;
+    e->arg  = (void *)arg_type;
+    e->u.bt.event = priv_event;
+    if (args) {
+        memcpy(e->u.bt.args, args, 7);
+    }
+    e->u.bt.value = value;
+    main_application_operation_event(NULL, e);
 }
 
 /*************************************************************************************************/
@@ -552,6 +584,7 @@ static void __ble_comm_cbk_packet_handler(uint8_t packet_type, uint16_t channel,
                         ble_op_disconnect_ext(tmp_handle, 0x13);
                         CLR_HANDLER_ROLE();
                     } else {
+                        s8 cur_cid =  ble_comm_dev_get_idle_index(role);
                         __comm_set_dev_handle_value(tmp_handle, role, cur_cid);
                         ble_op_multi_att_send_conn_handle(tmp_handle, cur_cid, role);
                     }
@@ -742,8 +775,12 @@ void ble_profile_init(void)
                     sm_set_master_io_capabilities(IO_CAPABILITY_KEYBOARD_ONLY);
                 }
             }
-
-            sm_set_authentication_requirements(gatt_control_block->sm_config->authentication_req_flags);
+            if (STACK_IS_SUPPORT_SM_SUB_SC()) {
+                log_info("enable SC_CONNECT");
+                sm_set_authentication_requirements(gatt_control_block->sm_config->authentication_req_flags | SM_AUTHREQ_SECURE_CONNECTION);
+            } else {
+                sm_set_authentication_requirements(gatt_control_block->sm_config->authentication_req_flags);
+            }
             sm_set_encryption_key_size_range(gatt_control_block->sm_config->min_key_size, gatt_control_block->sm_config->max_key_size);
             sm_set_master_request_pair(gatt_control_block->sm_config->master_security_auto_req);
             sm_set_request_security(gatt_control_block->sm_config->slave_security_auto_req);
@@ -751,7 +788,6 @@ void ble_profile_init(void)
 
             if (gatt_control_block->sm_config->io_capabilities == IO_CAPABILITY_DISPLAY_ONLY ||
                 gatt_control_block->sm_config->io_capabilities == IO_CAPABILITY_KEYBOARD_DISPLAY) {
-                extern void reset_PK_cb_register_ext(void (*reset_pk)(u32 *, u16));
                 reset_PK_cb_register_ext(__ble_comm_cbk_passkey_input);
             }
         }

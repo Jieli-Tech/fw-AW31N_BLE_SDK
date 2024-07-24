@@ -32,7 +32,6 @@
 #include "power/power_reset.h"
 #include "power/power_port.h"
 #include "power/vbat_det_trim.h"
-#include "power/rtc.h"
 #include "power/power_trim.h"
 
 //-------------------------------------------------------

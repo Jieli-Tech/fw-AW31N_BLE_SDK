@@ -46,7 +46,7 @@
 
 #if CONFIG_APP_MULTI
 
-static volatile uint8_t multi_is_active;
+static volatile uint8_t multi_is_active = 0;
 /*************************************************************************************************/
 /*!
  *  \brief      设置低功耗状态
@@ -74,14 +74,38 @@ void multi_state_idle_set_active(uint8_t active)
  *  \note
  */
 /*************************************************************************************************/
+void app_to_recover(void)
+{
+#if CONFIG_BT_GATT_CLIENT_NUM
+    // 默认scan不开低功耗
+    /* multi_state_idle_set_active(1); */
+#endif
+}
+
 static void multi_set_soft_poweroff(void)
 {
     log_info("set_soft_poweroff\n");
+
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
     multi_is_active = 1;
+#elif (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+    multi_is_active = 0;//allow enter lowpower
+#endif
     //必须先主动断开蓝牙链路,否则要等链路超时断开
     btstack_ble_exit(0);
     //延时，确保BT退出链路断开
-    sys_timeout_add(NULL, app_power_set_soft_poweroff, WAIT_DISCONN_TIME_MS);
+
+    if (ble_comm_dev_is_connected(GATT_ROLE_SERVER) || ble_comm_dev_is_connected(GATT_ROLE_CLIENT)) {
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
+        //soft 方式非必须等链路断开
+        sys_timeout_add(NULL, app_power_set_soft_poweroff, WAIT_DISCONN_TIME_MS);
+#elif (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        //must wait disconn
+        app_power_soft.wait_disconn = 1;
+#endif
+    } else {
+        app_power_set_soft_poweroff(NULL);
+    }
 }
 
 /*************************************************************************************************/
@@ -100,12 +124,7 @@ static void multi_bt_start(void)
     uint32_t sys_clk =  clk_get("sys");
     bt_pll_para(TCFG_CLOCK_OSC_HZ, sys_clk, 0, 0);
 
-#if TCFG_NORMAL_SET_DUT_MODE
-    clk_set("sfc", TCFG_CLOCK_DUT_SFC_HZ);
-    user_sele_dut_mode(1);
-#else
     btstack_ble_start_before_init(NULL, 0);
-#endif
     cfg_file_parse(0);
     btstack_init();
 }
@@ -135,7 +154,7 @@ static void multi_app_start()
 
     multi_bt_start();
 
-    int msg[2] = {0};
+    int msg[4] = {0};
     while (1) {
         get_msg(sizeof(msg) / sizeof(int), msg);
         app_comm_process_handler(msg);

@@ -30,9 +30,13 @@
 #include "app_comm_proc.h"
 #include "user_cfg.h"
 #include "ble_trans.h"
+#include "cpu_debug.h"
+#include "my_malloc.h"
 #if RCSP_BTMATE_EN
 #include "rcsp_bluetooth.h"
 #endif
+
+#define  LE_DEBUG_TIMER_INFO    0
 
 
 #if (CONFIG_APP_LE_TRANS)
@@ -50,16 +54,39 @@ static const ble_init_cfg_t le_trans_data_config = {
     .same_address = 0,
     .appearance = 0,
 };
+
+static void le_timer_test_handle(void *priv)
+{
+#if LE_DEBUG_TIMER_INFO
+    log_info("timer_1s");
+    static u8 cnt = 0;
+    if (++cnt % 5 == 0) {
+    }
+#endif
+}
+
 //---------------------------------------------------------------------
 static void le_trans_set_soft_poweroff(void)
 {
     log_info("le_trans_set_soft_poweroff\n");
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
     le_trans_is_active = 1;
+#endif
     //必须先主动断开蓝牙链路,否则要等链路超时断开
     btstack_ble_exit(0);
     //延时，确保BT退出链路断开
-    sys_timeout_add(NULL, app_power_set_soft_poweroff, WAIT_DISCONN_TIME_MS);
 
+    if (ble_comm_dev_is_connected(GATT_ROLE_SERVER) || ble_comm_dev_is_connected(GATT_ROLE_CLIENT)) {
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
+        //soft 方式非必须等链路断开
+        sys_timeout_add(NULL, app_power_set_soft_poweroff, WAIT_DISCONN_TIME_MS);
+#elif (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        //must wait disconn
+        app_power_soft.wait_disconn = 1;
+#endif
+    } else {
+        app_power_set_soft_poweroff(NULL);
+    }
 }
 /*************************************************************************************************/
 /*!
@@ -77,12 +104,7 @@ static void le_trans_bt_start()
     u32 sys_clk =  clk_get("sys");
     bt_pll_para(TCFG_CLOCK_OSC_HZ, sys_clk, 0, 0);
 
-#if TCFG_NORMAL_SET_DUT_MODE
-    clk_set("sfc", TCFG_CLOCK_DUT_SFC_HZ);
-    user_sele_dut_mode(1);
-#else
     btstack_ble_start_before_init(&le_trans_data_config, 0);
-#endif
 
     cfg_file_parse(0);
     btstack_init();
@@ -120,7 +142,11 @@ static void le_trans_app_start()
     common_uart_init(TCFG_COMMON_UART_BAUDRATE, COMMON_UART_TX_PIN, COMMON_UART_RX_PIN);
 #endif
 
-    int msg[2]   = {0};
+#if LE_DEBUG_TIMER_INFO
+    sys_timer_add(0, le_timer_test_handle, 1000);
+#endif
+
+    int msg[4] = {0};
     while (1) {
         get_msg(sizeof(msg) / sizeof(int), msg);
         app_comm_process_handler(msg);

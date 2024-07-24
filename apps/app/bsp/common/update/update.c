@@ -82,7 +82,7 @@ extern void wifi_det_close();
 __attribute__((weak))
 void wifi_det_close()
 {
-    printf("tmp weak func wifi_det_close\n");
+    log_info("tmp weak func wifi_det_close\n");
 }
 extern u8 get_ota_status();
 extern int get_nor_update_param(void *buf);
@@ -105,7 +105,7 @@ static succ_report_t succ_report;
 
 bool vm_need_recover(void)
 {
-    printf(">>>[test]:g_updata_flag = 0x%x\n", g_updata_flag);
+    log_info(">>>[test]:g_updata_flag = 0x%x\n", g_updata_flag);
     return ((g_updata_flag & 0xffff) == UPDATA_SUCC) ? true : false;
 }
 
@@ -282,7 +282,7 @@ void update_close_hw(void *filter_name)
     const struct update_target *p;
     list_for_each_update_target(p) {
         if (memcmp(filter_name, p->name, strlen(filter_name)) != 0) {
-            printf("close Hw Name : %s\n", p->name);
+            log_info("close Hw Name : %s\n", p->name);
             p->driver_close();
         }
     }
@@ -402,8 +402,8 @@ void update_mode_api_v2(UPDATA_TYPE type, void (*priv_param_fill_hdl)(UPDATA_PAR
 {
     u16 update_param_len = UPDATA_PARM_SIZE;//sizeof(UPDATA_PARM) + UPDATE_PRIV_PARAM_LEN;
 
-    u8 parm[UPDATA_PARM_SIZE] = {0};
-    UPDATA_PARM *p = (UPDATA_PARM *)(u32)parm;
+    u32 parm[(UPDATA_PARM_SIZE + 3) / sizeof(u32)] = {0}; // 4byte对齐
+    UPDATA_PARM *p = (UPDATA_PARM *)parm;
 
     if (p) {
         update_param_content_fill(type, p, priv_param_fill_hdl);
@@ -434,13 +434,13 @@ void update_mode_api_v2(UPDATA_TYPE type, void (*priv_param_fill_hdl)(UPDATA_PAR
 
 
 #if CPU_CORE_NUM > 1            //双核需要把CPU1关掉
-        printf("Before Suspend Current Cpu ID:%d Cpu In Irq?:%d\n", current_cpu_id(),  cpu_in_irq());
+        log_info("Before Suspend Current Cpu ID:%d Cpu In Irq?:%d\n", current_cpu_id(),  cpu_in_irq());
         if (current_cpu_id() == 1) {
             os_suspend_other_core();
         }
         ASSERT(current_cpu_id() == 0);          //确保跳转前CPU1已经停止运行
         cpu_suspend_other_core(CPU_SUSPEND_TYPE_UPDATE);
-        printf("After Suspend Current Cpu ID:%d\n", current_cpu_id());
+        log_info("After Suspend Current Cpu ID:%d\n", current_cpu_id());
 #endif
         update_before_jump_common_handle(type);
 
@@ -577,9 +577,10 @@ int app_update_init(void)
     /* 测试盒串口升级 */
     testbox_uart_update_init();
 #endif
-#if CONFIG_APP_OTA_EN
-    rcsp_init();
-#endif
+    // 由于buf的共用,rcsp不能这么早初始化
+    /* #if CONFIG_APP_OTA_EN */
+    /*     rcsp_init(); */
+    /* #endif */
     return 0;
 }
 
@@ -591,7 +592,7 @@ void update_start_exit_sniff(void)
 #if TCFG_APP_BT_EN
 #if TCFG_USER_TWS_ENABLE
     if (tws_api_get_tws_state() & TWS_STA_PHONE_CONNECTED) {
-        g_printf("exit sniff mode...\n");
+        log_info("exit sniff mode...\n");
         bt_cmd_prepare(USER_CTRL_ALL_SNIFF_EXIT, 0, NULL);
     } else {
         tws_api_tx_unsniff_req();

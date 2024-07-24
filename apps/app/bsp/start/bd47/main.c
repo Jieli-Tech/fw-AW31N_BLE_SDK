@@ -17,6 +17,7 @@
 #pragma code_seg(".main.text")
 #pragma str_literal_override(".main.text.const")
 
+#include "cpu_debug.h"
 #include "app_main.h"
 #include "config.h"
 #include "app_config.h"
@@ -30,8 +31,9 @@
 #include "app_modules.h"
 #include "my_malloc.h"
 #include "sys_timer.h"
+#include "flash_init.h"
 #include "tick_timer_driver.h"
-#include "power/include/power_flow.h"
+#include "cpu_debug.h"
 
 #define LOG_TAG_CONST       MAIN
 #define LOG_TAG             "[main]"
@@ -39,7 +41,8 @@
 
 __attribute__((noreturn))
 
-extern void emu_init();
+//extern void emu_init();
+extern void stack_inquire(void);
 extern void system_init(void);
 extern void board_init();
 
@@ -47,6 +50,7 @@ extern void board_init();
 extern u8 g_testbox_uart_up_flag;
 #endif
 
+void boot_osc_1pin_init();
 void c_main(int cfg_addr)
 {
     struct maskrom_argv mask_argv = {0};
@@ -55,16 +59,24 @@ void c_main(int cfg_addr)
     mask_init(&mask_argv);
     efuse_init();
 
+#ifdef CONFIG_SDK_DEBUG_LOG
+    sdk_cpu_debug_main_init();
+#endif
+
     power_early_flowing();
-    LS_EXIT_SOFF_POFF(DVDDLS_LAT);
+    //放在时钟初始化前,时钟会读取vm数据
+    boot_osc_1pin_init();
+
     board_init();
     tick_timer_init();
-
+#if TCFG_UART0_ENABLE
     log_init(TCFG_UART0_BAUDRATE);
+#endif
     log_info("1 hello word bd47\n");
     /* mask_argv.local_irq_enable = NULL; */
     /* mask_argv.local_irq_disable = NULL; */
     /* mask_argv.flt = NULL; */
+
 
     HWI_Install(1, (u32)exception_irq_handler, 7) ;
     emu_init();
@@ -83,16 +95,13 @@ void c_main(int cfg_addr)
     log_info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     log_info("       bd47 setup %s %s", __DATE__, __TIME__);
     log_info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    clock_dump();
     efuse_dump();
-
-
-    my_malloc_init();
 
     sys_timer_init();
 
     board_power_init();
 
-    clock_dump();
     system_init();
     power_later_flowing();
 

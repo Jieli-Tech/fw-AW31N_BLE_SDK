@@ -14,6 +14,7 @@
 /* #include "init_app.h" */
 #include "sys_timer.h"
 #include "flash_init.h"
+#include "flash_wp.h"
 #include "app_power_mg.h"
 #include "adc_dtemp_alog.h"
 #include "app_config.h"
@@ -27,6 +28,7 @@
 #define LOG_TAG             "[init]"
 #include "log.h"
 
+
 void system_init(void)
 {
     /* my_malloc_init(); */
@@ -34,19 +36,24 @@ void system_init(void)
     /* tick_timer_init(); */
     tick_timer_set_state(STATE_SFC);
     message_init();
+    event_pool_init();
     /* app_system_init(); */
     devices_init_api();
-    flash_system_init();
+    /* flash_system_init(); */
+    norflash_set_write_protect(1);//写保护耗时较多
     /* power_scan */
     app_power_init();
     //温度trim初始化
     trim_timer_add();
 
+    log_info(">>>AW31N_SDK INFO: %x,%d,time:%s,%s<<<", SDK_VERSION_CFG_DEFINE, SDK_VERSION_DATE_DEFINE,
+             __DATE__, __TIME__);
+
     //TODO
 #if UPDATE_V2_EN
     //升级初始化
     int app_update_init(void);
-    printf(">>>[test]:--------------------------------\n");
+    log_info(">>>[test update]......\n");
     app_update_init();
 
     /* #if TESTBOX_UART_UPDATE_EN */
@@ -61,5 +68,7 @@ void system_init(void)
 #endif
 
 #endif
+
+
 }
 

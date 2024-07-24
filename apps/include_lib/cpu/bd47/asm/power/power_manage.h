@@ -62,7 +62,7 @@ struct lp_request {
 };
 
 #define REGISTER_LP_REQUEST(target) \
-        const struct lp_request target sec(.lp_request)
+        const struct lp_request target SEC_USED(.lp_request)
 
 extern const struct lp_request lp_request_begin[];
 extern const struct lp_request lp_request_end[];

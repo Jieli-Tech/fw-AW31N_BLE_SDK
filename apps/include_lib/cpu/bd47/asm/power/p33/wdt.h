@@ -18,9 +18,10 @@
 #define WDT_16S 		0x0E
 #define WDT_32S 		0x0F
 
-void wdt_init(u8 time);
-void wdt_close(void);
-void wdt_clear(void);
-u32 wdt_get_time(void);//ms
+void wdt_init(u32 time);
+void wdt_enable();
+void wdt_disable();
+void wdt_clear();
+u32 wdt_get_time();//ms
 
 #endif

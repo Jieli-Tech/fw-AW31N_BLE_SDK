@@ -20,31 +20,24 @@
  * @brief Bluetooth Stack Module
  */
 
-#ifdef CONFIG_SOUNDBOX_FLASH_256K
+#if TCFG_USER_BLE_ENABLE
+#if CONFIG_APP_NONCONN_24G
+const int config_stack_modules = BT_BTSTACK_LE_NOCONN;
+#else
+const int config_stack_modules = BT_BTSTACK_LE;
+#endif
+
+#else
+const int config_stack_modules = 0;
+#endif
+
+const u16 config_bt_api_msg_buffer_size    =  CONFIG_BT_API_MSG_BUFSIZE;
+const u16 config_hci_host_msg_buffer_size  =  CONFIG_HOST_MSG_BUFSIZE;
+const u16 config_hci_ctrl_msg_buffer_size  =  CONFIG_CTRL_MSG_BUFSIZE;
+
 const int CONFIG_BTSTACK_BIG_FLASH_ENABLE     = 0;
-#else
-const int CONFIG_BTSTACK_BIG_FLASH_ENABLE     = 1;
-#endif
-
-#if TCFG_BT_SUPPORT_AAC
-const int CONFIG_BTSTACK_SUPPORT_AAC    = 1;
-#else
 const int CONFIG_BTSTACK_SUPPORT_AAC    = 0;
-#endif
-
-#if SNIFF_MODE_RESET_ANCHOR
-//协议栈接收到命令是否自动退出sniff
-const int config_btstask_auto_exit_sniff = 0;
-#else
-const int config_btstask_auto_exit_sniff = 1;
-#endif
-
-
-#if SMART_BOX_EN
-const int config_rcsp_stack_enable = 1;
-#else
 const int config_rcsp_stack_enable = 0;
-#endif
 
 #if TCFG_USER_BLE_ENABLE
 #if CONFIG_APP_NONCONN_24G
@@ -67,4 +60,14 @@ const int config_le_sm_support_enable = 0; //是否支持加密配对
 const int config_le_gatt_server_num = 0;   //支持server角色个数
 const int config_le_gatt_client_num = 0;   //支持client角色个数
 #endif
+
+const int config_le_sm_sub_sc_enable = 0;
+/*
+   u8 l2cap_debug_enable = 0xf0;
+   u8 rfcomm_debug_enable = 0xf;
+   u8 profile_debug_enable = 0xff;
+   u8 ble_debug_enable    = 0xff;
+ */
+
+
 

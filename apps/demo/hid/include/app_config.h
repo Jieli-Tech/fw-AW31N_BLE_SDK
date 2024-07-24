@@ -11,29 +11,54 @@
 #endif
 #define CONFIG_DEBUG_LIB(x)         (x & LIB_DEBUG)
 
-#define CONFIG_DEBUG_ENABLE  //DEBUG总打印
+#define CONFIG_DEBUG_ENABLE    //DEBUG总打印,关闭可优化代码空间
 
+#ifdef CONFIG_DEBUG_ENABLE
+#define CONFIG_SDK_DEBUG_LOG   //使能输出堆栈,堆,malloc等信息
+#endif
 
 //app case 选择,只选1,要配置对应的board_config.h
 #define CONFIG_APP_KEYBOARD                 1//hid按键 ,default case
 #define CONFIG_APP_KEYFOB                   0//自拍器,
-#define CONFIG_APP_MOUSE_SINGLE             0//单模BLE鼠标 需搭配CONFIG_BOARD_AW313A_MOUSE板级
+#define CONFIG_APP_MOUSE_SINGLE             0//单模鼠标（ble） 需搭配CONFIG_BOARD_AW313A_MOUSE_SINGLE板级
+#define CONFIG_APP_MOUSE_DUAL               0//三模鼠标（ble&2.4g&usb） 需搭配CONFIG_BOARD_AW313A_MOUSE板级
 #define CONFIG_APP_KEYPAGE                  0//翻页器
 #define CONFIG_APP_REMOTE_CONTROL           0//遥控器，需搭配CONFIG_BOARD_AW31A_RC板级
 #define CONFIG_APP_IDLE                     0//IDLE
 
-//edr sniff模式选择; sniff参数需要调整,移植可具体参考app_keyboard.c
-#if CONFIG_APP_MOUSE_SINGLE
-#define SNIFF_MODE_RESET_ANCHOR             1//键盘鼠标sniff模式,固定小周期发包,多按键响应快
+//add in bt_ble.h
+#define CONFIG_HOGP_COMMON_ENABLE           1 //公共的hogp
+
+#if(!CONFIG_APP_IDLE)
+//SDK 应用内存分配,谨慎修改
+//host 和 btctrl 消息池大小
+#define CONFIG_BT_API_MSG_BUFSIZE         (0xa0)//api cmd 消息池大小
+#define CONFIG_HOST_MSG_BUFSIZE           (0x200)//host 消息池大小
+#define CONFIG_CTRL_MSG_BUFSIZE           (0x100)//btctrl 消息池大小
+#define CFG_BT_MSG_BUFSZIE                (CONFIG_BT_API_MSG_BUFSIZE + CONFIG_HOST_MSG_BUFSIZE + CONFIG_CTRL_MSG_BUFSIZE)
+#define SYS_STACK_SIZE                    (0x800)  //中断堆栈大小
+#define USR_STACK_SIZE                    (0x500)  //用户堆栈大小
+#define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
+//bt ram, no bt set 0
+#define BT_NK_RAM_SIZE                    (0x660 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xEC0)  //nv malloc堆的大小
+
 #else
-#define SNIFF_MODE_RESET_ANCHOR             0//待机固定500ms sniff周期,待机功耗较低,按键唤醒有延时
+//SDK 应用内存分配,谨慎修改
+#define SYS_STACK_SIZE                    (0x800)  //中断堆栈大小
+#define USR_STACK_SIZE                    (0x500)  //用户堆栈大小
+#define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
+
+#define CONFIG_BT_API_MSG_BUFSIZE         (0)//api cmd 消息池大小
+#define CONFIG_HOST_MSG_BUFSIZE           (0)//host 消息池大小
+#define CONFIG_CTRL_MSG_BUFSIZE           (0)//btctrl 消息池大小
+
+//bt ram, no bt set 0
+#define BT_NK_RAM_SIZE                    (0)  //nk malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0)  //nv malloc堆的大小
 #endif
 
-#define CFG_APP_RUN_BY_WHILE                1//设置app_core跑裸机
 
-//add in bt_ble.h
-#if 1
-#define CONFIG_HOGP_COMMON_ENABLE          1 //公共的hogp
 
 //蓝牙BLE配置
 #define DOUBLE_BT_SAME_NAME                0 //同名字
@@ -43,70 +68,34 @@
 #define CONFIG_BT_GATT_SERVER_NUM          1 //配置从机server个数
 #define CONFIG_BT_GATT_CONNECTION_NUM      (CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_GATT_CLIENT_NUM) //配置连接个数
 #define CONFIG_BLE_HIGH_SPEED              0 //BLE提速模式: 使能DLE+2M, payload要匹配pdu的包长--TODO
+/*
+1、根据连接周期去限制包长,包长计算:TODO
+2、more data打开会占用下个周期
+3、所有周期单位为us
+*/
+#if CONFIG_APP_MOUSE_DUAL
+#define CONFIG_BLE_CONNECT_SLOT            1 //BLE高回报率设置, 支持私有协议
+#define TCFG_HID_AUTO_SHUTDOWN_TIME       (1 * 60)      //HID无操作自动关机(单位：秒)
+#else
+#define CONFIG_BLE_CONNECT_SLOT            0 //BLE高回报率设置, 支持私有协议
 #define TCFG_HID_AUTO_SHUTDOWN_TIME       (0 * 60)      //HID无操作自动关机(单位：秒)
 #endif
 
 
-//*********************************************************************************//
-//                                  蓝牙NVRAM配置                                  //
-//                                  !!!禁止修改!!!                                 //
-//*********************************************************************************//
-#define LBUF_HEAD                   0x10
-#define BLE_LINK_MAX                ((CONFIG_BT_GATT_CONNECTION_NUM == 0) ? 1 : CONFIG_BT_GATT_CONNECTION_NUM)
-//NK_RAM
-#define BTCTLER_K_RAM_LL_MSG        (0x200 + LBUF_HEAD)               //ll_msg
-#define BTCTLER_NK_RAM_SIZE         (((528 + LBUF_HEAD * 4) * BLE_LINK_MAX) + 0x400 + BTCTLER_K_RAM_LL_MSG)//增加0x400作为BT nv_ram占用申请
-//NV_RAM
-//----------init state
-#define BTCTLER_K_RAM_RX_TX_DMA     (1168 + LBUF_HEAD)                //TX/RX DMA
-#define BTCTLER_K_RAM_HW            (764  + LBUF_HEAD)                //HW4 HW_ENTITY
-#ifdef SUPPORT_RESERVATION_RAM
-#define BTCTLER_K_RAM_HCI_CON       ((451 + LBUF_HEAD) * BLE_LINK_MAX)//le_hci_connection_t
+
+//phy auto config
+#define CONFIG_SET_1M_PHY                 1
+#define CONFIG_SET_2M_PHY                 2
+#define CONFIG_SET_CODED_S2_PHY           3
+#define CONFIG_SET_CODED_S8_PHY           4
+
+#if CONFIG_BLE_HIGH_SPEED
+#define CONFIG_BLE_PHY_SET                CONFIG_SET_2M_PHY //SET 2M_PHY for protect
 #else
-#define BTCTLER_K_RAM_HCI_CON       ((712 + LBUF_HEAD) * BLE_LINK_MAX)//le_hci_connection_t
-#endif
-#define BTCTLER_K_RAM_HW_REGS       ((40  + LBUF_HEAD) * BLE_LINK_MAX)//ble4_hw->regs;
-//--------init slave
-#define BTCTLER_K_ADV_MALLOC        ((12  + LBUF_HEAD) + (76 + LBUF_HEAD))//ll_adv_hdl+le_adv_link
-//--------init master
-#define BTCTLER_K_RAM_GATT_CLIENT   (128  + LBUF_HEAD)                //gatt_clients_ram
-#define BTCTLER_K_SCAN_MALLOC       ((32  + LBUF_HEAD) + (20 + LBUF_HEAD))//ll_scan_hdl+le_scan_link
-#define BTCTLER_K_RAM_LL_INIT       ((32  + LBUF_HEAD) + 60 + LBUF_HEAD)//ll_init_hdl+le_init_link
-//----------conn state
-#if CONFIG_APP_MOUSE_SINGLE
-#define BTCTLER_K_RAM_CONN_STATE    ((492 + LBUF_HEAD) + LBUF_HEAD * 3  + 64)//le_link(link_layer) + one_shot + reserved
-#else
-#define BTCTLER_K_RAM_CONN_STATE    ((492 + LBUF_HEAD) + LBUF_HEAD * 3)//le_link(link_layer) + one_shot
-#endif
-#if CONFIG_BT_SM_SUPPORT_ENABLE
-#define SM_RAM_CONN                 ((480 + LBUF_HEAD) + (56 + LBUF_HEAD))
-#else
-#define SM_RAM_CONN                 0
+#define CONFIG_BLE_PHY_SET                CONFIG_SET_1M_PHY //default
 #endif
 
-
-#if (CONFIG_BT_GATT_CLIENT_NUM || CONFIG_BT_GATT_SERVER_NUM)
-#define BTCTLER_NV_MEMORY_SIZE      ((((BTCTLER_K_RAM_RX_TX_DMA + BTCTLER_K_RAM_HW + \
-                BTCTLER_K_RAM_HCI_CON + BTCTLER_K_RAM_HW_REGS * 2 + BTCTLER_K_RAM_GATT_CLIENT + BTCTLER_K_SCAN_MALLOC + \
-                BTCTLER_K_RAM_LL_INIT + BTCTLER_K_RAM_CONN_STATE + 16 * 2) * CONFIG_BT_GATT_CLIENT_NUM) + \
-                ((BTCTLER_K_RAM_RX_TX_DMA + BTCTLER_K_RAM_HW + BTCTLER_K_RAM_HCI_CON + \
-                  BTCTLER_K_RAM_HW_REGS + BTCTLER_K_ADV_MALLOC + BTCTLER_K_RAM_CONN_STATE + 16 * 2) * CONFIG_BT_GATT_SERVER_NUM)) + CONFIG_BT_SM_SUPPORT_ENABLE * SM_RAM_CONN + MY_MALLOC_TOTAL)
-#else
-//特殊应用：eg：no_conn_24g
-#define BTCTLER_NV_MEMORY_SIZE      (((BTCTLER_K_RAM_RX_TX_DMA + BTCTLER_K_RAM_HW + \
-                BTCTLER_K_RAM_HCI_CON + BTCTLER_K_RAM_HW_REGS * 2 + BTCTLER_K_RAM_GATT_CLIENT + BTCTLER_K_SCAN_MALLOC + \
-                BTCTLER_K_RAM_LL_INIT + BTCTLER_K_RAM_CONN_STATE + 16 * 2) * 1) + \
-                CONFIG_BT_SM_SUPPORT_ENABLE * SM_RAM_CONN + MY_MALLOC_TOTAL)
-#endif
-// #endif
-
-
-//APP应用默认配置
-//TODO
-// #define TCFG_AEC_ENABLE                     1
-
-// #define TCFG_MEDIA_LIB_USE_MALLOC		    1
-
+#define MY_MALLOC_SELECT                    1 //1--使用heap_buf malloc, 0--使用nv_ram_malloc
 
 // #include "usb_common_def.h"
 
@@ -116,11 +105,8 @@
 
 #include "user_cfg_id.h"
 
-#if MY_MALLOC_SELECT
-#define MY_MALLOC_TOTAL                     0
-#else
-#define MY_MALLOC_TOTAL                     300 //设置lbuf大小,为了节约空间和蓝牙lbuf整合
-#endif
+#define SYS_STACK_SIZE_ALL                SYS_STACK_SIZE
+#define USR_STACK_SIZE_ALL                USR_STACK_SIZE
 
 //需要app(BLE)升级要开一下宏定义
 #if CONFIG_APP_OTA_EN
@@ -135,18 +121,43 @@
 
 #if (CONFIG_BT_MODE == BT_NORMAL)
 //enable dut mode,need disable sleep(TCFG_LOWPOWER_LOWPOWER_SEL = 0)
-#define TCFG_NORMAL_SET_DUT_MODE                  0
+#define TCFG_NORMAL_SET_DUT_MODE                 0
 #if TCFG_NORMAL_SET_DUT_MODE
 #undef  TCFG_LOWPOWER_LOWPOWER_SEL
-#define TCFG_LOWPOWER_LOWPOWER_SEL                0
-#endif
+#define TCFG_LOWPOWER_LOWPOWER_SEL               0
+
+//close key
+#undef KEY_AD_EN
+#define KEY_AD_EN                                0
+
+#undef KEY_IO_EN
+#define KEY_IO_EN                                0
+
+#undef  TCFG_SYS_LVD_EN
+#define TCFG_SYS_LVD_EN					         0
+
+#undef UPDATE_V2_EN
+#define UPDATE_V2_EN                             0           // 升级功能使能
+
+#undef TESTBOX_BT_UPDATE_EN
+#define TESTBOX_BT_UPDATE_EN                     0           // 测试盒升级
+
+#undef TCFG_HID_AUTO_SHUTDOWN_TIME
+#define TCFG_HID_AUTO_SHUTDOWN_TIME              0
+#endif //#if TCFG_NORMAL_SET_DUT_MODE
 
 #undef  TCFG_USER_TWS_ENABLE
 #define TCFG_USER_TWS_ENABLE                      0     //tws功能使能
 #else
 
-#undef  TCFG_BD_NUM
-#define TCFG_BD_NUM						          1
+#define TCFG_NORMAL_SET_DUT_MODE                  0
+
+//close key
+#undef KEY_AD_EN
+#define KEY_AD_EN                                0
+
+#undef KEY_IO_EN
+#define KEY_IO_EN                                0
 
 #undef  TCFG_USER_TWS_ENABLE
 #define TCFG_USER_TWS_ENABLE                      0     //tws功能使能
@@ -187,12 +198,25 @@
 #undef TCFG_POWER_ON_NEED_KEY
 #define TCFG_POWER_ON_NEED_KEY		        0
 
-#undef TCFG_UART0_ENABLE
-#define TCFG_UART0_ENABLE					DISABLE_THIS_MOUDLE
+// #undef TCFG_UART0_ENABLE
+// #define TCFG_UART0_ENABLE					DISABLE_THIS_MOUDLE
+
+#undef UPDATE_V2_EN
+#define UPDATE_V2_EN                            0           // 升级功能使能
+
+#undef TESTBOX_BT_UPDATE_EN
+#define TESTBOX_BT_UPDATE_EN                    0           // 测试盒升级
+
+#undef TCFG_HID_AUTO_SHUTDOWN_TIME
+#define TCFG_HID_AUTO_SHUTDOWN_TIME             0
 
 #endif
 
+#if TCFG_CLOCK_SYS_HZ == 160000000 && TCFG_CLOCK_SYS_PLL_HZ != 240000000
+#error "SYS_HZ and SYS_PLL_ZH NO MATCH"
+#endif
 
+/*
 #ifdef CONFIG_SDFILE_ENABLE
 #define SDFILE_DEV				"sdfile"
 #define SDFILE_MOUNT_PATH     	"mnt/sdfile"
@@ -205,48 +229,11 @@
 #endif
 
 #endif
+*/
+
 #define CONFIG_BT_RX_BUFF_SIZE  (0)
 #define CONFIG_BT_TX_BUFF_SIZE  (0)
 
-#if (CONFIG_BT_MODE != BT_NORMAL)
-////bqb 如果测试3M tx buf 最好加大一点
-#undef  CONFIG_BT_TX_BUFF_SIZE
-#define CONFIG_BT_TX_BUFF_SIZE  (6 * 1024)
-
-#endif
-#define BT_NORMAL_HZ	            CONFIG_BT_NORMAL_HZ
-//*********************************************************************************//
-//                                 时钟切换配置                                    //
-//*********************************************************************************//
-
-#define BT_NORMAL_HZ	            CONFIG_BT_NORMAL_HZ
-#define BT_CONNECT_HZ               CONFIG_BT_CONNECT_HZ
-
-#define BT_A2DP_HZ	        	    CONFIG_BT_A2DP_HZ
-#define BT_TWS_DEC_HZ	        	CONFIG_TWS_DEC_HZ
-
-//#define MUSIC_DEC_CLOCK			    CONFIG_MUSIC_DEC_CLOCK
-//#define MUSIC_IDLE_CLOCK		    CONFIG_MUSIC_IDLE_CLOCK
-
-#define BT_CALL_HZ		            CONFIG_BT_CALL_HZ
-#define BT_CALL_ADVANCE_HZ          CONFIG_BT_CALL_ADVANCE_HZ
-#define BT_CALL_16k_HZ	            CONFIG_BT_CALL_16k_HZ
-#define BT_CALL_16k_ADVANCE_HZ      CONFIG_BT_CALL_16k_ADVANCE_HZ
-
-//*********************************************************************************//
-//                                 升级配置                                        //
-//*********************************************************************************//
-#if (defined(CONFIG_CPU_BR30))
-//升级LED显示使能
-//#define UPDATE_LED_REMIND
-//升级提示音使能
-//#define UPDATE_VOICE_REMIND
-#endif
-
-#if (defined(CONFIG_CPU_BR23) || defined(CONFIG_CPU_BR25))
-//升级IO保持使能
-//#define DEV_UPDATE_SUPPORT_JUMP           //目前只有br23\br25支持
-#endif
 #endif
 
 

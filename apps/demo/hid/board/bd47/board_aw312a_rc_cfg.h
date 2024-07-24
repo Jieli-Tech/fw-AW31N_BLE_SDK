@@ -28,6 +28,7 @@
 #define TCFG_COMMON_UART_ENABLE             DISABLE_THIS_MOUDLE                    //通用数据转串口模块使能
 #define COMMON_UART_TX_PIN                  IO_PORTA_06                            //串口接收脚配置
 #define COMMON_UART_RX_PIN                  IO_PORTA_06                            //串口发送脚配置
+#define COMMON_UART_INDEX                   UART_NUM_1
 #define TCFG_COMMON_UART_BAUDRATE  	        1000000                                //串口波特率配置
 
 //*********************************************************************************//
@@ -40,6 +41,39 @@
 //*********************************************************************************//
 #define AD_KEY_IO		                    IO_PORTA_08 // 可用的IO见adc_ch_io_table
 #define KEY_AD_EN				            DISABLE           //<AD按键使能
+
+#define EXTERN_R_UP     100//220 -> 22k,外挂上拉电阻,0使用内部上拉,内部上拉为10k
+
+#if EXTERN_R_UP
+#define R_UP       EXTERN_R_UP
+#else
+#define R_UP       100    //内部上拉为10K，有20%误差
+#endif
+
+#define ADC10_33   (0x3ffL)
+
+// 根据具体电路配置
+#define ADC10_30   (ADC10_33 * 1000   / (1000 + R_UP))     //100K
+#define ADC10_27   (ADC10_33 * 510    / (510  + R_UP))     //51K
+#define ADC10_23   (ADC10_33 * 240    / (240  + R_UP))     //24K
+#define ADC10_20   (ADC10_33 * 150    / (150  + R_UP))     //15K
+#define ADC10_17   (ADC10_33 * 100    / (100  + R_UP))     //10K
+#define ADC10_13   (ADC10_33 * 68     / (68   + R_UP))     //6.8K
+#define ADC10_10   (ADC10_33 * 47     / (47   + R_UP))     //4.7K
+#define ADC10_07   (ADC10_33 * 22     / (22   + R_UP))     //2.2K
+#define ADC10_04   (ADC10_33 * 10     / (10   + R_UP))     //1K
+#define ADC10_00   (0)
+
+#define AD_NOKEY        ((ADC10_33 + ADC10_30) / 2)
+#define ADKEY1_0		((ADC10_30 + ADC10_27) / 2)
+#define ADKEY1_1		((ADC10_27 + ADC10_23) / 2)
+#define ADKEY1_2		((ADC10_23 + ADC10_20) / 2)
+#define ADKEY1_3		((ADC10_20 + ADC10_17) / 2)
+#define ADKEY1_4		((ADC10_17 + ADC10_13) / 2)
+#define ADKEY1_5		((ADC10_13 + ADC10_10) / 2)
+#define ADKEY1_6		((ADC10_10 + ADC10_07) / 2)
+#define ADKEY1_7		((ADC10_07 + ADC10_04) / 2)
+#define ADKEY1_8		((ADC10_04 + ADC10_00) / 2)
 
 #define TCFG_ADKEY_VALUE0                   0
 #define TCFG_ADKEY_VALUE1                   1
@@ -84,6 +118,8 @@
 #define IR_KEY_IO			                IO_PORTA_10
 #define IR_WORK_FRQ                         38000
 #define IR_WORK_DUTY                        5000
+#define TCFG_IR_ENCODER_TIMER_TID           0 // 使用timer0作为红外timer tid
+#define TCFG_IR_ENCODER_PWM_TID             1 // 使用timer1作为红外pwm tid
 
 //*********************************************************************************//
 //                                 charge 配置 TODO                                      //
@@ -128,10 +164,9 @@
 //*********************************************************************************//
 //                                  VM Version配置                                 //
 //*********************************************************************************//
-#define MY_MALLOC_SELECT                    1 //0:my_malloc使用lbuf的方式,1:my_malloc使用堆的方式
 
 //*********************************************************************************//
-//                                  USB配置TODO                                    //
+//                                  USB配置                                    //
 //*********************************************************************************//
 #if HAS_USB_EN
 #define TCFG_PC_ENABLE						ENABLE  //PC模块使能
@@ -164,12 +199,14 @@
 #define	USB_DISK_EN        //是否可以读U盘
 #endif
 
-#if TCFG_PC_ENABLE || TCFG_UDISK_ENABLE
 #include "usb_std_class_def.h"
 #include "usb_common_def.h"
-
-#undef USB_DEVICE_CLASS_CONFIG
-#define  USB_DEVICE_CLASS_CONFIG            (MASSSTORAGE_CLASS|SPEAKER_CLASS|MIC_CLASS|HID_CLASS)  //配置usb从机模式支持的class
+#if TCFG_PC_ENABLE || TCFG_UDISK_ENABLE
+#undef   USB_DEVICE_CLASS_CONFIG
+#define  USB_DEVICE_CLASS_CONFIG            (HID_CLASS)  //配置usb从机模式支持的class
+#else
+#undef   USB_DEVICE_CLASS_CONFIG
+#define  USB_DEVICE_CLASS_CONFIG            (0)
 #endif
 
 //*********************************************************************************//
@@ -193,6 +230,11 @@
 #define TCFG_CLOCK_DUT_SFC_HZ              64000000 //dut 运行时不能降低sfc，尤其是cache小的芯片，出现通信周期太小导致load代码来不及或者来不及处理rxadj的情况
 
 //*********************************************************************************//
+//                                供电模式配置                                     //
+//*********************************************************************************//
+#define  TCFG_POWER_SUPPLY_MODE		       1//适配芯片硬件电路供电方式，0：IOVDD供电，1：VPWR供电
+
+//*********************************************************************************//
 //                                  低功耗配置                                     //
 //*********************************************************************************//
 /*
@@ -212,9 +254,11 @@
 #define TCFG_LOWPOWER_POWER_SEL				PWR_LDO15                    //电源模式设置，可选DCDC和LDO
 #define TCFG_LOWPOWER_BTOSC_DISABLE			0                            //低功耗模式下BTOSC是否保持
 #define TCFG_LOWPOWER_LOWPOWER_SEL			DEEP_SLEEP_EN                //SNIFF状态下芯片是否进入powerdown
+#define TCFG_LOWPOWER_PATTERN               SOFT_MODE//SOFT_BY_POWER_MODE           //选择软关机的方式
 #define TCFG_LOWPOWER_VDDIOM_LEVEL			VDDIOM_VOL_30V
 #define TCFG_LOWPOWER_VDDIOW_LEVEL			VDDIOW_VOL_28V               //弱VDDIO等级配置
 #define TCFG_LOWPOWER_OSC_TYPE              OSC_TYPE_LRC
+#define TCFG_LOWPOWER_SOFF					1
 
 //TODO by bt
 #define LOW_POWER_WARN_VAL                  240

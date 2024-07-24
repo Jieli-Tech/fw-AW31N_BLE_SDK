@@ -34,6 +34,7 @@ struct usb_device_t ;
 
 typedef u32(*itf_hander)(struct usb_device_t *usb_device, struct usb_ctrlrequest *);
 typedef void(*itf_reset_hander)(struct usb_device_t *, u32 itf);
+typedef void(*itf_suspend_hander)(struct usb_device_t *, u32 itf);
 typedef void(*usb_interrupt)(struct usb_device_t *, u32 ep);
 typedef u32(*desc_config)(const usb_dev usb_id, u8 *ptr, u32 *cur_itf_num);
 
@@ -72,6 +73,7 @@ struct usb_setup_t {
     struct usb_ctrlrequest request;
     itf_hander interface_hander[MAX_INTERFACE_NUM];
     itf_reset_hander reset_hander[MAX_INTERFACE_NUM];
+    itf_suspend_hander suspend_hander[MAX_INTERFACE_NUM];
 } __attribute__((aligned(4)));
 
 const usb_dev usb_device2id(const struct usb_device_t *usb_device);
@@ -79,12 +81,16 @@ struct usb_device_t *usb_id2device(const usb_dev usb_id);
 void usb_control_transfer(struct usb_device_t *usb_device);
 void usb_device_set_class(struct usb_device_t *usb_device, u32 class_config);
 u32 usb_g_set_intr_hander(const usb_dev usb_id, u32 ep, usb_interrupt hander);
+u32 usb_g_set_sof_intr_hander(const usb_dev usb_id, u32 ep, usb_interrupt hander);
+u32 usb_g_sof_intr_hander_check(const usb_dev usb_id, u32 ep, usb_interrupt hander);
 u32 usb_set_interface_hander(const usb_dev usb_id, u32 itf_num, itf_hander hander);
 void usb_add_desc_config(const usb_dev usb_id, u32 index, const desc_config desc);
 const u8 *usb_get_config_desc();
 void usb_device_set_desc(const usb_dev usb_id, const struct usb_device_descriptor_t *desc);
 u32 usb_set_reset_hander(const usb_dev usb_id, u32 itf_num, itf_reset_hander hander);
 void usb_reset_interface(struct usb_device_t *usb_device);
+u32 usb_set_suspend_hander(const usb_dev usb_id, u32 itf_num, itf_suspend_hander hander);
+void usb_suspend_interface(struct usb_device_t *usb_device);
 void usb_set_setup_recv(struct usb_device_t *usb_device, void *recv);
 void usb_set_setup_hook(struct usb_device_t *usb_device, void *hook);
 int usb_device_mode(const usb_dev usb_id, const u32 class);
@@ -102,7 +108,8 @@ u32 usb_root2_testing();
 extern void usb_start();
 extern void usb_stop();
 extern void usb_pause();
-
+extern int usb_otg_event_handler(int msg);
+extern void usb_pc_in_handler_register(void *func_ptr);
 /* #define usb_add_desc_config(fn) \                                    */
 /*     const desc_config usb_desc_config##fn sec(.usb.desc_config) = fn */
 

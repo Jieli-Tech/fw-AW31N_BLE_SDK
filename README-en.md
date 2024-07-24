@@ -54,7 +54,7 @@ Please refer to the Tags for the released versions.
 
 Coming Soon:
 
-* Bluetooth Application: `Dongle + Mouse（1K）`
+* Bluetooth Application: `Multi-Link`
 
 
 The SDK support Codeblock & Make to build to project,make sure you already setup the enviroment
@@ -76,7 +76,7 @@ Low Power Bluetooth Link Layer and Host Protocol Stack support the implementatio
 Hardware Environment
 -------------
 
-* Development Evaluation Board: Entrance for development board application [Link](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/burner_1tuo2/index.html)
+* Development Evaluation Board: Entrance for development board application [Link](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-22878283450.9.74013aa9I0MQZb&id=817701311470&skuId=5687013814892)
 
 * Production Burning Tools: Designed for mass production and bare chip programming, Contact agent and carefully read the related [Documentation](https://doc.zh-jieli.com/Tools/zh-cn/mass_prod_tools/burner_1tuo2/index.html) 
 

@@ -119,9 +119,10 @@ static int multi_server_pair_vm_do(uint8_t *info, uint8_t info_len, uint8_t rw_f
 #endif
     return 0;
 }
+
 /*************************************************************************************************/
 /*!
- *  \brief   测试发数
+ *  \brief   清配对信息
  *
  *  \param      [in]
  *
@@ -130,8 +131,6 @@ static int multi_server_pair_vm_do(uint8_t *info, uint8_t info_len, uint8_t rw_f
  *  \note
  */
 /*************************************************************************************************/
-
-//清配对信息
 int multi_server_clear_pair(void)
 {
 #if PER_PAIR_BOND_ENABLE
@@ -149,7 +148,7 @@ int multi_server_clear_pair(void)
 
 /*************************************************************************************************/
 /*!
- *  \brief   测试发数
+ *  \brief   配置连接参数更新
  *
  *  \param      [in]
  *
@@ -158,8 +157,6 @@ int multi_server_clear_pair(void)
  *  \note
  */
 /*************************************************************************************************/
-
-//配置连接参数更新
 static void multi_server_send_connetion_update(uint16_t conn_handle)
 {
     if (multi_server_connection_update_enable) {
@@ -168,9 +165,10 @@ static void multi_server_send_connetion_update(uint16_t conn_handle)
         }
     }
 }
+
 /*************************************************************************************************/
 /*!
- *  \brief   测试发数
+ *  \brief  回连状态，主动使能通知
  *
  *  \param      [in]
  *
@@ -179,8 +177,6 @@ static void multi_server_send_connetion_update(uint16_t conn_handle)
  *  \note
  */
 /*************************************************************************************************/
-
-//回连状态，主动使能通知
 static void multi_server_resume_all_ccc_enable(uint16_t conn_handle, uint8_t update_request)
 {
     log_info("resume_all_ccc_enable\n");
@@ -235,6 +231,15 @@ static int multi_server_event_packet_handler(int event, uint8_t *packet, uint16_
 
     case GATT_COMM_EVENT_DISCONNECT_COMPLETE:
         log_info("disconnect_handle:%04x,reason= %02x\n", little_endian_read_16(packet, 0), packet[2]);
+
+        //TODO 可以推msg到app处理
+#if (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        if (app_power_soft.wait_disconn) {
+            app_power_soft.wait_disconn = 0;
+            app_power_set_soft_poweroff(NULL);
+        }
+#endif
+
         if (packet[2] == 8) {
             if (multi_server_pair_bond_info[0] == PER_PAIR_BOND_TAG) {
                 multi_server_direct_adv_count = DIRECT_ADV_MAX_CNT;
@@ -543,9 +548,10 @@ static int multi_server_make_set_rsp_data(void)
     multi_server_adv_config.rsp_data = multi_server_scan_rsp_data;
     return 0;
 }
+
 /*************************************************************************************************/
 /*!
- *  \brief   测试发数
+ *  \brief   广播参数设置
  *
  *  \param      [in]
  *
@@ -554,8 +560,6 @@ static int multi_server_make_set_rsp_data(void)
  *  \note
  */
 /*************************************************************************************************/
-
-//广播参数设置
 static void multi_server_adv_config_set(void)
 {
     int ret = 0;
@@ -580,9 +584,10 @@ static void multi_server_adv_config_set(void)
     }
     ble_gatt_server_set_adv_config(&multi_server_adv_config);
 }
+
 /*************************************************************************************************/
 /*!
- *  \brief   测试发数
+ *  \brief   server init
  *
  *  \param      [in]
  *
@@ -591,8 +596,6 @@ static void multi_server_adv_config_set(void)
  *  \note
  */
 /*************************************************************************************************/
-
-//server init
 void multi_server_init(void)
 {
     log_info("%s", __FUNCTION__);

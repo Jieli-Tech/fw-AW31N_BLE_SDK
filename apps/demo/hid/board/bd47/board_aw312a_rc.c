@@ -2,10 +2,12 @@
 #include "adc_api.h"
 #include "key.h"
 #include "key_drv_io.h"
+#include "key_drv_matrix.h"
 
 #ifdef CONFIG_BOARD_AW31A_RC
 #include "includes.h"
 /* #include "user_cfg.h" */
+#include "init.h"
 
 #define LOG_TAG_CONST       BOARD
 #define LOG_TAG             "[BOARD]"
@@ -53,19 +55,30 @@ void gpio_config_soft_poweroff(void)
 #endif
 
 #if KEY_MATRIX_EN
-    PORT_PROTECT(MATRIX_KEY_ROW1);
-    PORT_PROTECT(MATRIX_KEY_ROW2);
-    PORT_PROTECT(MATRIX_KEY_ROW3);
     PORT_PROTECT(MATRIX_KEY_ROL1);
     PORT_PROTECT(MATRIX_KEY_ROL2);
     PORT_PROTECT(MATRIX_KEY_ROL3);
+    PORT_PROTECT(MATRIX_KEY_ROW1);
+    PORT_PROTECT(MATRIX_KEY_ROW2);
+    PORT_PROTECT(MATRIX_KEY_ROW3);
 #endif
-
     __port_init((u32)gpio_config);
-}
 
+}
 /************************** SOFTOFF IO PROTECT****************************/
 
+// 软关机前需要做的操作可以放到这个函数
+void set_before_softoff(void)
+{
+    log_info(">>>> set before softoff");
+#if KEY_MATRIX_EN
+    // softoff之前矩阵按键都设为低电平，否则无法触发唤醒
+    set_matrixkey_row_port_output();
+#endif
+    gpio_config_soft_poweroff();
+}
+
+platform_uninitcall(set_before_softoff);
 
 /************************** IO WAKE UP CONFIG****************************/
 #define        WAKE_IO_MAX_NUMS                 5

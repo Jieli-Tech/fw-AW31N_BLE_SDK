@@ -168,6 +168,8 @@ static void mcpwm_cfg_info_load(int mcpwm_cfg_id)
     ch_reg->ch_con0 = ch_con0;
     ch_reg->ch_con1 = ch_con1;
     /* spin_unlock(&mcpwm_lock); */
+
+    mcpwm_set_deadtime_ns(id, mcpwm_info[id]->cfg.deadtime_ns);
 }
 static struct mcpwm_info_t _mcpwm_info[MCPWM_NUM_MAX];
 int mcpwm_init(struct mcpwm_config *mcpwm_cfg)
@@ -208,6 +210,7 @@ int mcpwm_init(struct mcpwm_config *mcpwm_cfg)
     log_info("mcpwm_info[%d]->cfg.detect_port = %d\n", cfg_id, (u32)mcpwm_info[cfg_id]->cfg.detect_port);
     log_info("mcpwm_info[%d]->cfg.irq_cb = %d\n", cfg_id, (u32)mcpwm_info[cfg_id]->cfg.irq_cb);
     log_info("mcpwm_info[%d]->cfg.irq_priority = %d\n", cfg_id, (u32)mcpwm_info[cfg_id]->cfg.irq_priority);
+    log_info("mcpwm_info[%d]->cfg.deadtime_ns = %d\n", cfg_id, (u32)mcpwm_info[cfg_id]->cfg.deadtime_ns);
     return cfg_id;
 
 }
@@ -231,11 +234,14 @@ void mcpwm_deinit(int mcpwm_cfg_id)
     JL_MCPWM->MCPWM_CON0 = mcpwm_con;
     /* spin_unlock(&mcpwm_lock); */
     gpio_disable_function(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.h_pin), PORT_FUNC_MCPWM0_H + 2 * ch);
+    gpio_deinit(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.h_pin));
     gpio_disable_function(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.l_pin), PORT_FUNC_MCPWM0_L + 2 * ch);
+    gpio_deinit(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.l_pin));
     gpio_set_mode(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.h_pin), PORT_HIGHZ);
     gpio_set_mode(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.l_pin), PORT_HIGHZ);
     if (mcpwm_info[id]->cfg.detect_port != (u16) - 1) { //需要开启故障保护功能
         gpio_disable_function(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.detect_port), PORT_FUNC_MCPWM0_FP + ch);
+        gpio_deinit(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.detect_port));
         gpio_set_mode(IO_PORT_SPILT(mcpwm_info[mcpwm_cfg_id]->cfg.detect_port), PORT_HIGHZ);
         /* spin_lock(&mcpwm_lock); */
         ch_reg->ch_con1 = BIT(MCPWM_CH_FCLR);
@@ -368,6 +374,30 @@ void mcpwm_set_duty(int mcpwm_cfg_id, u16 duty)
     /* spin_unlock(&mcpwm_lock); */
 }
 
+void mcpwm_set_deadtime_ns(int mcpwm_cfg_id, u32 deadtime_ns)
+{
+    int id = mcpwm_cfg_id;
+    u32 ch = (u32)mcpwm_info[id]->cfg.ch;
+    MCPWM_CHx_REG *ch_reg = mcpwm_get_chx_reg(ch);
+    u16 ch_con0 = ch_reg->ch_con0;
+    //设置死驱
+    /* if (mcpwm_info[id]->cfg.deadtime_ns) { */
+    u32 clk_src = MCPWM_CLK;
+    u8 dtckps;
+    u8 dtpr;
+    for (dtckps = 0; dtckps <= 0xf; dtckps++) {
+        if ((1000000000 / (clk_src >> dtckps) * 32) > deadtime_ns) {
+            dtpr = deadtime_ns / (1000000000 / (clk_src >> dtckps)) - 1;
+            SFR(ch_con0, MCPWM_CH_DTCKPS, 4, dtckps);
+            SFR(ch_con0, MCPWM_CH_DTPR, 5, dtpr);
+            ch_con0 |= BIT(MCPWM_CH_DTEN);
+            break;
+        }
+    }
+    /* } */
+    ch_reg->ch_con0 = ch_con0;
+}
+
 void mcpwm_fpnd_clr(u32 ch)
 {
     MCPWM_CHx_REG *ch_reg = mcpwm_get_chx_reg(ch);
@@ -387,7 +417,8 @@ void mcpwm_fpnd_clr(u32 ch)
 
 
 
-#if 0
+#if 1
+#include "typedef.h"
 static void usr_mcpwm_detect_test_func(u32 ch)
 {
     log_info("usr ch %d\n", ch);
@@ -407,11 +438,12 @@ void mcpwm_test(void)
     usr_mcpwm_cfg.duty = 5000;                                 //占空比50%
     usr_mcpwm_cfg.h_pin = IO_PORTA_00;                         //任意引脚
     usr_mcpwm_cfg.l_pin = IO_PORTA_01;                                  //任意引脚,不需要就填-1
-    usr_mcpwm_cfg.complementary_en = 1;                        //两个引脚的波形, 0: 同步,  1: 互补，互补波形的占空比体现在H引脚上
+    usr_mcpwm_cfg.complementary_en = 0;                        //两个引脚的波形, 0: 同步,  1: 互补，互补波形的占空比体现在H引脚上
     usr_mcpwm_cfg.detect_port = IO_PORTA_02;                   //任意引脚,不需要就填-1
     usr_mcpwm_cfg.edge = MCPWM_EDGE_FAILL;
     usr_mcpwm_cfg.irq_cb = usr_mcpwm_detect_test_func;
     usr_mcpwm_cfg.irq_priority = 1;                 //优先级默认为1
+    usr_mcpwm_cfg.deadtime_ns = 1000;           //死驱时间,1000ns
     int ch0_id0 = mcpwm_init(&usr_mcpwm_cfg);
 
     /* usr_mcpwm_cfg.ch = MCPWM_CH0;                        //通道号 */
@@ -442,6 +474,7 @@ void mcpwm_test(void)
 #endif
 
     mcpwm_start(ch0_id0);
+    mcpwm_set_deadtime_ns(ch0_id0, 2000);
     /* mcpwm_start(ch0_id1); */
     /* mcpwm_start(ch1_id0); */
     /* extern void wdt_clear(); */

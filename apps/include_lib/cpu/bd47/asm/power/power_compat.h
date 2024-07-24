@@ -3,11 +3,6 @@
 
 int cpu_reset_by_soft();
 
-
-
-
-
-
-
+void wdt_close();
 
 #endif

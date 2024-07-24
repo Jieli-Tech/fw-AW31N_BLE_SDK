@@ -274,9 +274,16 @@ void ble_gatt_server_sm_packet(uint8_t packet_type, uint16_t channel, uint8_t *p
         case SM_EVENT_JUST_WORKS_REQUEST:
             //发送接受配对命令sm_just_works_confirm,否则不发
             sm_just_works_confirm(sm_event_just_works_request_get_handle(packet));
-            log_info("first pair, %04x->Just Works Confirmed.\n", event->con_handle);
             __this->server_encrypt_process = LINK_ENCRYPTION_PAIR_JUST_WORKS;
-            __gatt_server_event_callback_handler(GATT_COMM_EVENT_ENCRYPTION_REQUEST, (u8 *)&event->con_handle, 2, &__this->server_encrypt_process);
+
+            int ret = __gatt_server_event_callback_handler(GATT_COMM_EVENT_ENCRYPTION_REQUEST, (u8 *)&event->con_handle, 2, &__this->server_encrypt_process);
+            if (ret) {
+                log_info("first pair, %04x->Just decline.\n", event->con_handle);
+                sm_bonding_decline(sm_event_just_works_request_get_handle(packet));
+            } else {
+                log_info("first pair, %04x->Just Works Confirmed.\n", event->con_handle);
+                sm_just_works_confirm(sm_event_just_works_request_get_handle(packet));
+            }
             break;
 
         case SM_EVENT_PASSKEY_DISPLAY_NUMBER:
@@ -300,6 +307,7 @@ void ble_gatt_server_sm_packet(uint8_t packet_type, uint16_t channel, uint8_t *p
             switch (event->data[0]) {
             case SM_EVENT_PAIR_SUB_RECONNECT_START:
                 __this->server_encrypt_process = LINK_ENCRYPTION_RECONNECT;
+                __gatt_server_event_callback_handler(GATT_COMM_EVENT_ENCRYPTION_REQUEST, (void *)&event->con_handle, 2, &__this->server_encrypt_process);
                 log_info("reconnect start\n");
                 break;
 
@@ -458,11 +466,13 @@ void ble_gatt_server_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
 #if RCSP_BTMATE_EN
                 if (!__this->rcsp_ctrl_en) {
                     __this->rcsp_ctrl_en = 1;
+#if 0
 #if (defined(BT_CONNECTION_VERIFY) && (0 == BT_CONNECTION_VERIFY))
                     JL_rcsp_auth_reset();
 #endif
                     rcsp_init();
                     rcsp_dev_select(RCSP_BLE);
+#endif
                 }
 #endif
                 ble_comm_dev_set_handle_state(tmp_val[0], GATT_ROLE_SERVER, BLE_ST_CONNECT);
@@ -1033,7 +1043,7 @@ u8 *ble_get_scan_rsp_ptr(u16 *len)
         if (len) {
             *len = __this->adv_config->rsp_data_len;
         }
-        return __this->adv_config->rsp_data;
+        return (u8 *)(__this->adv_config->rsp_data);
     } else {
         if (len) {
             *len = 0;
@@ -1060,7 +1070,7 @@ u8 *ble_get_adv_data_ptr(u16 *len)
         if (len) {
             *len = __this->adv_config->adv_data_len;
         }
-        return __this->adv_config->adv_data;
+        return (u8 *)(__this->adv_config->adv_data);
     } else {
         if (len) {
             *len = 0;
@@ -1085,7 +1095,7 @@ u8 *ble_get_gatt_profile_data(u16 *len)
 {
     if (__this && __this->adv_config) {
         *len = __this->profile_data_len;
-        return __this->profile_data;
+        return (u8 *)(__this->profile_data);
     } else {
         *len = 0;
         log_info("error: %s\n", __FUNCTION__);
@@ -1231,9 +1241,9 @@ static int update_regiest_state_cbk(void *priv, void *cbk)
 /*************************************************************************************************/
 static const struct ble_server_operation_t gatt_server_update_operation = {
     .adv_enable = update_adv_enable,
-    .disconnect = ble_gatt_server_disconnect_update_conn,
+    .disconnect = (void *)ble_gatt_server_disconnect_update_conn,
     //.get_buffer_vaild = get_buffer_vaild_len,
-    .send_data = update_send_user_data_do,
+    .send_data = (void *)update_send_user_data_do,
     .regist_wakeup_send = ble_gatt_server_regiest_wakeup_send,
     .regist_recieve_cbk = update_regiest_recieve_cbk,
     .regist_state_cbk = update_regiest_state_cbk,

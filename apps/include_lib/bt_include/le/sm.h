@@ -29,9 +29,12 @@ void ble_sm_setup_init(io_capability_t io_type, u8 auth_req, uint8_t min_key_siz
 
 void ble_cbk_handler_register(btstack_packet_handler_t packet_cbk, sm_stack_packet_handler_t sm_cbk);
 
-void sm_just_works_confirm(hci_con_handle_t con_handle);
-
 void sm_init(void);
+
+/*接受对方的配对绑定请求*/
+void sm_just_works_confirm(hci_con_handle_t con_handle);
+/*拒绝对方的配对绑定请求*/
+void sm_bonding_decline(hci_con_handle_t con_handle);
 
 /*接口同时设置master 和 slave的配置*/
 void sm_set_io_capabilities(io_capability_t io_capability);
@@ -66,4 +69,7 @@ void sm_set_master_pair_redo(int enable);
 //设置回连时，延时发起加密流程的时间，可用于兼容一些设备连接
 void sm_set_master_reconnect_enc_delay(u16 delay_ms);
 void sm_passkey_input(hci_con_handle_t con_handle, uint32_t passkey);
+
+
+void reset_PK_cb_register_ext(void (*reset_pk)(u32 *, u16));
 #endif

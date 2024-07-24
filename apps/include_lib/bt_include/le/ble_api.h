@@ -53,6 +53,8 @@ typedef enum {
     BLE_CMD_LATENCY_HOLD_CNT,
     BLE_CMD_LATENCY_OPEN,
     BLE_CMD_LATENCY_CLOSE,
+    BLE_CMD_US_UNIT,
+    BLE_CMD_INIT_2MPHY,
     BLE_CMD_SET_DATA_LENGTH,
     BLE_CMD_SET_HCI_CFG,
     BLE_CMD_SCAN_ENABLE2,
@@ -901,6 +903,22 @@ void bt_make_ble_address(u8 *ble_address, u8 *edr_address);
 
 /*************************************************************************************************/
 /*!
+ *  \brief      初始化连接就是2mphy  set 配置1开启 0关闭   如果要用这个功能 必须要统一配置
+ */
+/*************************************************************************************************/
+#define ble_op_conn_init_2Mphy(set)     \
+	ble_user_cmd_prepare(BLE_CMD_INIT_2MPHY, 1, set)
+
+/*************************************************************************************************/
+/*!
+ *  \brief      us 为单位连接  set 配置1开启 0关闭   如果要用这个功能 必须要统一配置
+ */
+/*************************************************************************************************/
+#define ble_op_conn_us_unit(set)     \
+	ble_user_cmd_prepare(BLE_CMD_US_UNIT, 1, set)
+
+/*************************************************************************************************/
+/*!
  *  \brief      测试盒识别按键测试.
  *
  *  \function   ble_cmd_ret_e ble_op_test_key_num(u16 con_handle,u8 key_num).
@@ -1358,6 +1376,20 @@ int att_server_change_profile(u8 const *profile_data);
  */
 /*************************************************************************************************/
 u8 le_hw_check_all_instant_will_be_valid(void);
+
+/*************************************************************************************************/
+/*!
+ *  \brief      上层直接调用基带接口发数.
+ *
+ *  \param      [in] priv_hw 底层hw.
+ *  \param      [in] packet         发送数据包地址.
+ *  \param      [in] len            发送数据包长度.
+ *  \param      [in] tx_octets      malloc buffer len.
+ *
+ *  \return     1->有链路处于instant点 ,0->没有链路处于instant点.
+ */
+/*************************************************************************************************/
+int le_hw_send_packet_fast(void *priv_hw, const u8 *packet, int len, int tx_octets);
 
 uint8_t *att_send_ram_alloc(uint32_t size);
 

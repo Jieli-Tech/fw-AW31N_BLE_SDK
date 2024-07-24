@@ -28,11 +28,14 @@ extern const int config_le_hci_connection_num;//支持同时连接个数
 extern const int config_le_sm_support_enable; //是否支持加密配对
 extern const int config_le_gatt_server_num;   //支持server角色个数
 extern const int config_le_gatt_client_num;   //支持client角色个数
+extern const int config_btctler_coded_type;
+extern const int config_le_sm_sub_sc_enable;   //支持SC加密方式
 
 #define STACK_IS_SUPPORT_GATT_SERVER()  (config_le_gatt_server_num)
 #define STACK_IS_SUPPORT_GATT_CLIENT()  (config_le_gatt_client_num)
 #define STACK_IS_SUPPORT_GATT_CONNECT() (config_le_hci_connection_num)
 #define STACK_IS_SUPPORT_SM_PAIR()      (config_le_sm_support_enable)
+#define STACK_IS_SUPPORT_SM_SUB_SC()    (config_le_sm_sub_sc_enable)
 
 typedef enum {
     /*======master + slave,ble common*/
@@ -255,6 +258,6 @@ void ble_gatt_client_module_enable(u8 en);
 void ble_gatt_client_disconnect_all(void);
 void ble_gatt_just_search_profile_start(u16 conn_handle);
 void ble_gatt_just_search_profile_stop(u16 conn_handle);
-
+u8 ble_comm_dev_get_connected_nums(u8 role);
 #endif
 #endif

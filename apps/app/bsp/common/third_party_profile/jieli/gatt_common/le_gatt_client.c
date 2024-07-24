@@ -38,6 +38,7 @@
 
 #if TCFG_USER_BLE_ENABLE && CONFIG_BT_GATT_COMMON_ENABLE
 
+static volatile uint8_t gatt_client_is_active = 0;
 /* #ifdef log_info */
 /* #undef log_info */
 /* #define log_info(x, ...)  g_printf("[GATT_CLIENT]" x " ", ## __VA_ARGS__) */
@@ -85,7 +86,6 @@ typedef struct {
 
 static client_ctl_t client_s_hdl;
 #define __this    (&client_s_hdl)
-extern const int config_btctler_coded_type;
 //----------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 static void __gatt_client_check_auto_scan(void);
@@ -159,6 +159,7 @@ static void __gatt_client_timeout_handler(void *type_id)
     if (TO_TYPE_CREAT_CONN == (int)type_id) {
         if (ble_gatt_client_get_work_state() == BLE_ST_CREATE_CONN) {
             log_info("create connection timeout!!!");
+            gatt_client_is_active = 0;
             ble_gatt_client_create_connection_cannel();
             __gatt_client_event_callback_handler(GATT_COMM_EVENT_CREAT_CONN_TIMEOUT, 0, 0, 0);
             __gatt_client_check_auto_scan();
@@ -897,7 +898,10 @@ just_creat:
         packet_data[8] = find_remoter;
         packet_data[9] = device_match_index;
         memcpy(&packet_data[1], report_pt->address, 6);
-        __gatt_client_event_callback_handler(GATT_COMM_EVENT_SCAN_DEV_MATCH, packet_data, 9, (u8 *)match_cfg);
+        if (__gatt_client_event_callback_handler(GATT_COMM_EVENT_SCAN_DEV_MATCH, packet_data, 9, (void *)match_cfg)) {
+            log_info("user can cannel to auto connect");
+            find_remoter = 0;
+        }
     }
     return find_remoter;
 }
@@ -994,7 +998,7 @@ int ble_gatt_client_create_connection_request(u8 *address, u8 addr_type, int mod
 #endif
 
     if (ret) {
-        log_error("creat fail!!!\n");
+        log_error("creat fail!!! result: %d\n", ret);
     } else {
         __gatt_client_set_work_state(INVAIL_CONN_HANDLE, BLE_ST_CREATE_CONN, 1);
         if (__this->scan_conn_config->creat_state_timeout_ms) {
@@ -1018,6 +1022,7 @@ int ble_gatt_client_create_connection_request(u8 *address, u8 addr_type, int mod
 int ble_gatt_client_create_connection_cannel(void)
 {
     if (ble_gatt_client_get_work_state() == BLE_ST_CREATE_CONN) {
+        gatt_client_is_active = 0;
         __gatt_client_set_work_state(INVAIL_CONN_HANDLE, BLE_ST_SEND_CREATE_CONN_CANNEL, 1);
         return ble_op_create_connection_cancel();
     }
@@ -1054,8 +1059,10 @@ static void __gatt_client_report_adv_data(adv_report_t *report_pt, u16 len)
 
     if (find_tag && __this->scan_conn_config && __this->scan_conn_config->creat_auto_do) {
         ble_gatt_client_scan_enable(0);
+        gatt_client_is_active = 1;//close low power
         if (ble_gatt_client_create_connection_request(report_pt->address, report_pt->address_type, 0)) {
             log_info("creat fail,scan again!!!\n");
+            gatt_client_is_active = 0;
             ble_gatt_client_scan_enable(1);
         }
     } else {
@@ -1214,6 +1221,7 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
 
 #if EXT_ADV_MODE_EN
             case HCI_SUBEVENT_LE_ENHANCED_CONNECTION_COMPLETE: {
+                gatt_client_is_active = 0;
                 __gatt_client_timeout_del();
                 if (BT_OP_SUCCESS != packet[3]) {
                     log_info("LE_MASTER CONNECTION FAIL!!! %0x\n", packet[3]);
@@ -1225,15 +1233,24 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                     log_info("conn_interval = %d\n", hci_subevent_le_enhanced_connection_complete_get_conn_interval(packet));
                     log_info("conn_latency = %d\n", hci_subevent_le_enhanced_connection_complete_get_conn_latency(packet));
                     log_info("conn_timeout = %d\n", hci_subevent_le_enhanced_connection_complete_get_supervision_timeout(packet));
+
+                    __this->client_search_handle = tmp_val[0];
+
+                    ble_comm_dev_set_handle_state(__this->client_search_handle, GATT_ROLE_CLIENT, BLE_ST_CONNECT);
                     __this->client_encrypt_process = LINK_ENCRYPTION_NULL;
-                    __gatt_client_set_work_state(INVAIL_CONN_HANDLE, BLE_ST_IDLE, 1);
+                    __gatt_client_set_work_state(INVAIL_CONN_HANDLE, BLE_ST_IDLE, 0);
+                    __gatt_client_set_work_state(tmp_val[0], BLE_ST_CONNECT, 1);
                     __gatt_client_event_callback_handler(GATT_COMM_EVENT_CONNECTION_COMPLETE, tmp_val, 2, packet);
+                    if (!ble_comm_need_wait_encryption(GATT_ROLE_CLIENT)) {
+                        __gatt_client_search_profile_start();
+                    }
                 }
             }
             break;
 #endif
 
             case HCI_SUBEVENT_LE_CONNECTION_COMPLETE: {
+                gatt_client_is_active = 0;
                 __gatt_client_timeout_del();
                 if (BT_OP_SUCCESS != packet[3]) {
                     log_info("LE_MASTER CONNECTION FAIL!!! %0x\n", packet[3]);
@@ -1311,6 +1328,10 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                         log_info(">>>>>>>>s3--request CODED S8, %04x\n", tmp_val[0]);
                         ble_comm_set_connection_data_phy(tmp_val[0], CONN_SET_CODED_PHY, CONN_SET_CODED_PHY, CONN_SET_PHY_OPTIONS_S8);
                     }
+                } else {
+                    if (ble_comm_need_wait_encryption(GATT_ROLE_CLIENT)) {
+                        __gatt_client_search_profile_start();
+                    }
                 }
 
                 __gatt_client_event_callback_handler(GATT_COMM_EVENT_CONNECTION_DATA_LENGTH_CHANGE, (u8 *)tmp_val, 2, packet);
@@ -1322,7 +1343,10 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                 log_info("APP HCI_SUBEVENT_LE_PHY_UPDATE %s\n", hci_event_le_meta_get_phy_update_complete_status(packet) ? "Fail" : "Succ");
                 log_info("Tx PHY: %s\n", client_phy_result[hci_event_le_meta_get_phy_update_complete_tx_phy(packet)]);
                 log_info("Rx PHY: %s\n", client_phy_result[hci_event_le_meta_get_phy_update_complete_rx_phy(packet)]);
-                __gatt_client_event_callback_handler(GATT_COMM_EVENT_CONNECTION_PHY_UPDATE_COMPLETE, (u8 *)tmp_val, 2, packet);
+                __gatt_client_event_callback_handler(GATT_COMM_EVENT_CONNECTION_PHY_UPDATE_COMPLETE, (void *)tmp_val, 2, packet);
+                if (ble_comm_need_wait_encryption(GATT_ROLE_CLIENT)) {
+                    __gatt_client_search_profile_start();
+                }
                 break;
             }
             break;
@@ -1361,9 +1385,6 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                 log_info("Encryption fail!!!,%d,%04x\n", packet[2], tmp_val[0]);
             }
             __gatt_client_event_callback_handler(GATT_COMM_EVENT_ENCRYPTION_CHANGE, (u8 *)tmp_val, 4, 0);
-            if (ble_comm_need_wait_encryption(GATT_ROLE_CLIENT)) {
-                __gatt_client_search_profile_start();
-            }
 
             if (config_le_sm_support_enable) {
                 if (config_btctler_le_features & LE_DATA_PACKET_LENGTH_EXTENSION) {
@@ -1379,6 +1400,10 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                     } else {
                         log_info(">>>>>>>>s2--request CODED S8, %04x\n", tmp_val[0]);
                         ble_comm_set_connection_data_phy(tmp_val[0], CONN_SET_CODED_PHY, CONN_SET_CODED_PHY, CONN_SET_PHY_OPTIONS_S8);
+                    }
+                } else {
+                    if (ble_comm_need_wait_encryption(GATT_ROLE_CLIENT)) {
+                        __gatt_client_search_profile_start();
                     }
                 }
             }
@@ -1602,6 +1627,19 @@ void ble_gatt_client_exit(void)
     log_info("%s\n", __FUNCTION__);
     ble_gatt_client_module_enable(0);
 }
+
+
+//-----------------------
+//system check go sleep is ok
+static uint8_t gatt_client_state_idle_query(void)
+{
+    return !gatt_client_is_active;
+}
+
+REGISTER_LP_TARGET(gatt_client_state_lp_target) = {
+    .name = "gatt_client_state_deal",
+    .is_idle = gatt_client_state_idle_query,
+};
 
 #endif
 

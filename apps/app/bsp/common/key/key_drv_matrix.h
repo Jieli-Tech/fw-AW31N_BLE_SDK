@@ -29,6 +29,6 @@ void matrix_key_init(void);
 void matrix_key_suspend();
 void matrix_key_release();
 uint8_t get_matrixkey_value(void);
-
+void set_matrixkey_row_port_output(void);
 #endif
 #endif/*__KEY_DRV_MATRIX_H__*/

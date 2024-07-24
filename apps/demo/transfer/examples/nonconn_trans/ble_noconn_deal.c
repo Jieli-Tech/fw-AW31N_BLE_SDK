@@ -179,7 +179,7 @@ static void noconn_tx_timer_test(void)
     }
 
     noconn_tx_send_data(noconn_test_buffer, test_len);
-    r_printf("tx_data: %02x", noconn_test_buffer[0]);
+    log_info("tx_data: %02x", noconn_test_buffer[0]);
     put_buf(noconn_test_buffer, test_len);
     noconn_test_buffer[0]++;
 }
@@ -309,6 +309,7 @@ static void noconn_rx_event_handler(uint8_t packet_type, uint16_t channel, uint8
     case HCI_EVENT_PACKET:
         switch (hci_event_packet_get_type(packet)) {
         case GAP_EVENT_ADVERTISING_REPORT:
+            putchar('V');
             noconn_rx_report_handle((void *)&packet[2], packet[1]);
             break;
         default:
@@ -421,8 +422,11 @@ void bt_ble_init(void)
     rf_set_24g_hackable_coded(CFG_RF_24G_CODE_ID);
 #endif
 
+#if CFG_RF_ADV_SCAN_CHL
     //通信信道，发送接收都要一致
     ble_rf_vendor_fixed_channel(36, 3);
+#endif
+
     name_p = bt_get_local_name();
     noconn_gap_device_name_len = strlen(name_p);
     if (noconn_gap_device_name_len > BT_NAME_LEN_MAX - ext_name_len) {
@@ -437,8 +441,10 @@ void bt_ble_init(void)
     log_info("ble name(%d): %s \n", noconn_gap_device_name_len, noconn_gap_device_name);
 
 #if CONFIG_TX_MODE_ENABLE
+#if TX_TEST_SEND_MODE
     //for test
-    /* sys_timer_add(NULL, noconn_tx_timer_test, 3000); */
+    sys_timer_add(NULL, (void *)noconn_tx_timer_test, 1000);
+#endif
 #endif
 
 #if CONFIG_RX_MODE_ENABLE

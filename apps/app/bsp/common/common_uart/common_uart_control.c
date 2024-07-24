@@ -113,7 +113,7 @@ int common_uart_get_num(void)
 /*************************************************************************************************/
 void common_uart_init(uint32_t _baud_rate, uint16_t _tx_pin, uint16_t _rx_pin)
 {
-    struct uart_config config = {
+    const struct uart_config config = {
         .baud_rate = _baud_rate,
         .tx_pin = _tx_pin,
         .rx_pin = _rx_pin,
@@ -124,7 +124,7 @@ void common_uart_init(uint32_t _baud_rate, uint16_t _tx_pin, uint16_t _rx_pin)
     log_info("uart_rx_ptr:%d", uart_rx_ptr);
     /* log_info("frame_ptr:%d", frame_ptr); */
 
-    struct uart_dma_config dma = {
+    const struct uart_dma_config dma = {
         .rx_timeout_thresh = 100,
         .frame_size = COMMON_UART_RX_BUF_SIZE,
         .event_mask = UART_EVENT_TX_DONE | UART_EVENT_RX_DATA | UART_EVENT_RX_FIFO_OVF | UART_EVENT_RX_TIMEOUT,
@@ -141,7 +141,7 @@ void common_uart_init(uint32_t _baud_rate, uint16_t _tx_pin, uint16_t _rx_pin)
     } else {
         log_info("init ok %d", ut);
     }
-    int r = uart_dma_init(ut, &dma);
+    int r = uart_dma_init(COMMON_UART_INDEX, &dma);
     if (r < 0) {
         log_error("dma init error %d", ut);
     } else {

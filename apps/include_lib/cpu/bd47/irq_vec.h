@@ -44,9 +44,9 @@
 #define IRQ_AES_IDX             38
 #define IRQ_SRC_IDX             39
 
-#define IRQ_AUDIO_IDX           42
-#define IRQ_APA_IDX             43
-#define IRQ_ALINK_IDX           44
+// #define IRQ_AUDIO_IDX           42
+// #define IRQ_APA_IDX             43
+// #define IRQ_ALINK_IDX           44
 
 #define IRQ_BT_TIMEBASE_IDX     48
 #define IRQ_BLE_RX_IDX          49

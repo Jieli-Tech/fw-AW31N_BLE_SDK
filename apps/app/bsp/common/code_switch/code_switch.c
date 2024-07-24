@@ -6,6 +6,7 @@
 #include "app_main.h"
 #include "sys_timer.h"
 #include "gptimer.h"
+#include "msg.h"
 
 #ifdef TCFG_CODE_SWITCH_ENABLE
 #define LOG_TAG         "[code_sw]"
@@ -22,16 +23,18 @@ static void get_code_value_handler(void *priv);
 static u8 code_switch_idle_query(void);
 
 
-extern struct application *main_application_operation_event(struct application *app, struct sys_event *event);
 static void code_switch_event_to_usr(u8 event, s8 sw_val)
 {
-    struct sys_event e;
-    e.type                = SYS_DEVICE_EVENT;
-    e.arg                 = "code_switch";
-    e.u.codesw.event      = event;
-    e.u.codesw.value      = sw_val;
-    /* sys_event_notify(&e); */
-    main_application_operation_event(NULL, &e);
+    struct sys_event *e = event_pool_alloc();
+    if (e == NULL) {
+        log_info("Memory allocation failed for sys_event");
+        return;
+    }
+    e->type                = SYS_DEVICE_EVENT;
+    e->arg                 = "code_switch";
+    e->u.codesw.event      = event;
+    e->u.codesw.value      = sw_val;
+    main_application_operation_event(NULL, e);
 }
 
 static const u8 code_postive_list[] = {

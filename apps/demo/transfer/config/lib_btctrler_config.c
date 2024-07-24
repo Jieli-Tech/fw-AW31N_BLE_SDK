@@ -21,6 +21,8 @@
  */
 #if TCFG_USER_BLE_ENABLE
 const int config_btctler_modules        = BT_MODULE_LE;
+#else
+const int config_btctler_modules        = 0;
 #endif
 
 #ifdef CONFIG_NEW_BREDR_ENABLE
@@ -169,16 +171,30 @@ const int config_btctler_le_master_multilink = ((CONFIG_BT_GATT_CLIENT_NUM + CON
 
 #if CONFIG_APP_NONCONN_24G
 const uint64_t config_btctler_le_features = 0;
+const int config_btctler_le_acl_packet_length = 27;
+
+#if CONFIG_RX_MODE_ENABLE && CONFIG_TX_MODE_ENABLE
 const int config_btctler_le_roles    = (LE_SCAN | LE_ADV);
+const int config_btctler_le_hw_nums = 2;
+const int config_btctler_le_rx_nums = 6;
+const int config_btctler_le_acl_total_nums = 6;
+#elif CONFIG_RX_MODE_ENABLE
+const int config_btctler_le_roles    = (LE_SCAN);
 const int config_btctler_le_hw_nums = 1;
 const int config_btctler_le_rx_nums = 3;
-const int config_btctler_le_acl_packet_length = 27;
 const int config_btctler_le_acl_total_nums = 4;
+#else
+const int config_btctler_le_roles    = (LE_ADV);
+const int config_btctler_le_hw_nums = 1;
+const int config_btctler_le_rx_nums = 3;
+const int config_btctler_le_acl_total_nums = 4;
+#endif
+
 #else
 
 #if CONFIG_BLE_HIGH_SPEED
 const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG | LE_DATA_PACKET_LENGTH_EXTENSION | EXT_ADV_CFG;// | LE_2M_PHY;
-const int config_btctler_le_acl_packet_length = 251;
+const int config_btctler_le_acl_packet_length = 48;
 #else
 const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG | EXT_ADV_CFG;
 const int config_btctler_le_acl_packet_length = 27;
@@ -203,9 +219,14 @@ const int config_btctler_le_master_multilink = 0;
 
 // LE
 const int config_btctler_le_slave_conn_update_winden = 800;//range:100 to 2500
+const int config_btctler_le_clock_accuracy = 500;
 
 // LE vendor baseband
-const u32 config_vendor_le_bb = 0;
+#if CONFIG_BLE_CONNECT_SLOT
+u32 config_vendor_le_bb = VENDOR_BB_MD_CLOSE;
+#else
+u32 config_vendor_le_bb = 0;
+#endif
 /* u32 config_vendor_le_bb = VENDOR_BB_MD_CLOSE | VENDOR_BB_CONNECT_SLOT; */
 const u32 config_low_power_timeout_reserved = 1025;//低功耗蓝牙预留时间
 
@@ -220,12 +241,6 @@ const int config_btctler_single_carrier_en = 1;   ////单模ble才设置
 const int config_btctler_single_carrier_en = 0;
 #endif
 
-#if SNIFF_MODE_RESET_ANCHOR
-const int sniff_support_reset_anchor_point = 1;   //sniff状态下是否支持reset到最近一次通信点，用于HID
-#else
-const int sniff_support_reset_anchor_point = 0;   //sniff状态下是否支持reset到最近一次通信点，用于HID
-#endif
-const int sniff_long_interval = (500 / 0.625);    //sniff状态下进入long interval的通信间隔(ms)
 
 const int config_rf_oob = 0;
 

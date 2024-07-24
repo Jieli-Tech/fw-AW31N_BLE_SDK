@@ -24,17 +24,6 @@ static s16 avg_filter(s16 *pdata, u8 num)
     return (sum / num);
 }
 
-extern struct application *main_application_operation_event(struct application *app, struct sys_event *event);
-static void optical_mouse_sensor_event_to_usr(u8 event, s16 x, s16 y)
-{
-    struct sys_event e;
-    e.type = SYS_DEVICE_EVENT;
-    e.arg = "omsensor_axis";
-    e.u.axis.event = event;
-    e.u.axis.x = x;
-    e.u.axis.y = y;
-    main_application_operation_event(NULL, &e);
-}
 
 static u8 optical_mouse_sensor_data_ready(void)
 {
@@ -69,6 +58,52 @@ void optical_mouse_sensor_read_motion_handler(void *priv)
     }
 }
 
+void optical_mouse_read_sensor_handler_high(mouse_packet_data_t *mouse_packet, mouse_send_flags_t *mouse_flags)
+{
+    int16_t x = 0, y = 0;
+    static int16_t delta_x = 0, delta_y = 0;
+
+    if (optical_mouse_sensor_data_ready()) {
+        int16_t temp = 0;
+        if (OMSensor_hdl->OMSensor_read_motion) {
+            OMSensor_hdl->OMSensor_read_motion(&x, &y);
+        }
+
+        temp = x;
+        x = y;
+        y = temp;
+
+        VECTOR_REVERS(x);
+        VECTOR_REVERS(y);
+
+        if (mouse_flags->sensor_send_flag) {
+            delta_x = 0;
+            delta_y = 0;
+        }
+
+        if (((delta_x + x) >= -2047) && ((delta_x + x) <= 2047)) {
+            // x值在有效范围内
+        } else {
+            x = 0;
+        }
+
+        if (((delta_y + y) >= -2047) && ((delta_y + y) <= 2047)) {
+            // y值在有效范围内
+        } else {
+            y = 0;
+        }
+
+        // 坐标调整
+        delta_x += (-y);
+        delta_y += (x);
+
+        mouse_packet->xymovement[0] = delta_x & 0xFF;
+        mouse_packet->xymovement[1] = ((delta_y << 4) & 0xF0) | ((delta_x >> 8) & 0x0F);
+        mouse_packet->xymovement[2] = (delta_y >> 4) & 0xFF;
+
+        mouse_flags->sensor_send_flag = 0;
+    }
+}
 
 u16 optical_mouse_sensor_set_cpi(u16 dst_cpi)
 {
@@ -132,11 +167,8 @@ bool optical_mouse_sensor_init(OMSENSOR_PLATFORM_DATA *priv)
     //设置optical mouse sensor的采样率
     if (retval == true) {
         log_info("optical mouse start>>>>>>>>>>>>>>>>>>>>");
-        sys_s_hi_timer_add(NULL, optical_mouse_sensor_read_motion_handler, OPTICAL_SENSOR_SAMPLE_PERIOD);
     }
     return retval;
 }
 
 #endif
-
-

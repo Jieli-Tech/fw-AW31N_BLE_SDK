@@ -1,9 +1,18 @@
 #include "ir_encoder.h"
 #include "gptimer.h"
 #include "asm/power_interface.h"
+#include "app_config.h"
 
+#define LOG_TAG_CONST       PERI
 #define LOG_TAG             "[ir_encode]"
-#include "log.h"
+#define LOG_ERROR_ENABLE
+#define LOG_DEBUG_ENABLE
+#define LOG_INFO_ENABLE
+/* #define LOG_DUMP_ENABLE */
+#define LOG_CLI_ENABLE
+
+#include "debug.h"
+
 
 #define IR_NEC_PULSE_UNIT   563
 #define IR_NEC_BIT_1_H  1
@@ -13,159 +22,275 @@
 #define IR_NEC_HEAD_H   16
 #define IR_NEC_HEAD_L   8
 #define IR_NEC_END_H    1
-#define IR_NEC_END_L    10
-#define IR_NEC_END_REPEAT_L    169
+#define IR_NEC_END_L    1
+#define IR_NEC_END_REPEAT_L    75//196
 #define IR_NEC_REPEAT_H 16
 #define IR_NEC_REPEAT_L 4
+#define IR_NEC_REPEAT_END_H 1
+#define IR_NEC_REPEAT_END_L 175
 #define IR_NEC_REPEAT   0x00FF00FF
 
-static int pwm_tid;
-static int timer_tid;
+enum state : u8 {
+    IR_IDLE,
+    IR_HEAD,
+    IR_DATA,
+    IR_END,
+    IR_REPEAT,
+    IR_REPEAT_END,
+};
 
-static u8 cnt_h, cnt_l, cnt, ir_status, repeat_flag;
-static u32 ir_data, _ir_data;
-static void ir_pwm_ctrl()
+enum : u8 {
+    DATA_BIT0 = 0,
+    DATA_BIT1,
+    HEAD_BIT,
+    END_BIT,
+    REPEAT_BIT,
+    REPEAT_END_BIT,
+};
+
+struct ir_encode_info {
+    u32 ir_data; //存储发送的红外数据,4*8bit = (cmd_not + cmd +addr_not + addr)
+    enum state state; //状态机,记录当前发送处于哪个阶段
+    u8 pwm_tid; //用于pwm功能的timer_id
+    u8 timer_tid; //用于timer功能的timer_id
+    u8 high_level_count; //高电平持续count个单位时间
+    u8 low_level_count; //低电平持续count个单位时间
+    u8 repeat_en; //重复码使能标志
+    u8 pwm_high_ctrl: 1; //高电平使能标志位,避免重复开关
+    u8 pwm_low_ctrl: 1; //低平使能标志位,避免重复开关
+    u8 bit_count: 6; //已发送bit个数
+};
+
+#define IR_ENCODER_MALLOC_ENABLE   0
+#if IR_ENCODER_MALLOC_ENABLE
+#include "malloc.h"
+#else
+static struct ir_encode_info _ir_encode;
+#endif
+static struct ir_encode_info *ir_encode;
+
+static u32 ir_encoder_malloc()
 {
-    if (cnt_h) {
-        gptimer_pwm_enable(pwm_tid);
-        cnt_h--;
+#if IR_ENCODER_MALLOC_ENABLE
+    ir_encode = (struct ir_encode_info *)malloc(sizeof(struct ir_encode_info));
+#else
+    ir_encode = &_ir_encode;
+#endif
+    memset(ir_encode, 0, sizeof(struct ir_encode_info));
+    return 0;
+}
+static u32 ir_encoder_free()
+{
+    memset(ir_encode, 0, sizeof(struct ir_encode_info));
+#if IR_ENCODER_MALLOC_ENABLE
+    free(ir_encode);
+#else
+    ir_encode = NULL;
+#endif
+    return 0;
+}
+
+
+static u32 ir_pwm_ctrl()
+{
+    if (ir_encode->pwm_high_ctrl) {
+        gptimer_pwm_enable(ir_encode->pwm_tid);
+        ir_encode->pwm_high_ctrl = 0;
+        ir_encode->high_level_count--;
+    } else if (ir_encode->high_level_count) {
+        ir_encode->high_level_count--;
+    } else if (ir_encode->pwm_low_ctrl) {
+        gptimer_pwm_disable(ir_encode->pwm_tid);
+        ir_encode->pwm_low_ctrl = 0;
+        ir_encode->low_level_count--;
+    } else if (ir_encode->low_level_count) {
+        ir_encode->low_level_count--;
+    }
+
+    if (ir_encode->low_level_count) {
+        return 0;
     } else {
-        if (cnt_l) {
-            gptimer_pwm_disable(pwm_tid);
-            cnt_l--;
-        } else {
-            /* _gptimer_pwm_enable(pwm_tid); */
-        }
+        return 1;
     }
 }
-static void ir_encode_callback(int tid)
+
+static void ir_encode_tx_bit(u32 bit_state)
 {
-    ir_pwm_ctrl();
-    switch (ir_status) {
-    case IR_STATUS_IDLE:
-        gptimer_pwm_disable(pwm_tid);
-        gptimer_pause(timer_tid);
+    switch (bit_state) {
+    case HEAD_BIT:
+        ir_encode->high_level_count = IR_NEC_HEAD_H;
+        ir_encode->low_level_count = IR_NEC_HEAD_L;
         break;
-    case IR_STATUS_REPEAT:
-        if ((cnt_h == 0) && (cnt_l == 0)) {
-            cnt_h = IR_NEC_END_H;
-            cnt_l = IR_NEC_END_L;
-            if (repeat_flag) {
-                cnt_l = IR_NEC_END_REPEAT_L;
-            }
-            ir_status = IR_STATUS_END;
+    case DATA_BIT0:
+        ir_encode->high_level_count = IR_NEC_BIT_0_H;
+        ir_encode->low_level_count = IR_NEC_BIT_0_L;
+        break;
+    case DATA_BIT1:
+        ir_encode->high_level_count = IR_NEC_BIT_1_H;
+        ir_encode->low_level_count = IR_NEC_BIT_1_L;
+        break;
+    case END_BIT:
+        ir_encode->high_level_count = IR_NEC_END_H;
+        if (ir_encode->repeat_en) {
+            ir_encode->low_level_count = IR_NEC_END_REPEAT_L;
+        } else {
+            ir_encode->low_level_count = IR_NEC_END_L;
         }
         break;
-    case IR_STATUS_HEAD:
-        if ((cnt_h == 0) && (cnt_l == 0)) {
-            cnt = 1;
-            if (_ir_data & BIT(0)) {
-                cnt_h = IR_NEC_BIT_1_H;
-                cnt_l = IR_NEC_BIT_1_L;
-            } else {
-                cnt_h = IR_NEC_BIT_0_H;
-                cnt_l = IR_NEC_BIT_0_L;
-            }
-            ir_status = IR_STATUS_DATA;
-            _ir_data >>= 1;
+    case REPEAT_BIT:
+        ir_encode->high_level_count = IR_NEC_REPEAT_H;
+        ir_encode->low_level_count = IR_NEC_REPEAT_L;
+        break;
+    case REPEAT_END_BIT:
+        ir_encode->high_level_count = IR_NEC_REPEAT_END_H;
+        ir_encode->low_level_count = IR_NEC_REPEAT_END_L;
+        break;
+    default :
+        break;
+    }
+    ir_encode->pwm_high_ctrl = 1;
+    ir_encode->pwm_low_ctrl = 1;
+}
+
+static void ir_encode_irq(u32 tid, void *arg)
+{
+    u32 bit_state_change = ir_pwm_ctrl();
+    //检查当前bit是否发送完成，切换下一个状态
+    if (bit_state_change == 0) {
+        return;
+    }
+    switch (ir_encode->state) {
+    case IR_IDLE:
+        ir_encode->state = IR_HEAD;
+        break;
+    case IR_HEAD:
+        ir_encode_tx_bit(HEAD_BIT);
+        ir_encode->state = IR_DATA;
+        ir_encode->bit_count = 0;
+        break;
+    case IR_DATA:
+        u32 bit_level = ir_encode->ir_data & BIT(0);
+        ir_encode_tx_bit(bit_level);
+        ir_encode->ir_data >>= 1;
+        ir_encode->bit_count++;
+        if (ir_encode->bit_count == 32) {
+            ir_encode->state = IR_END;
         }
         break;
-    case IR_STATUS_DATA:
-        if ((cnt_h == 0) && (cnt_l == 0)) {
-            if (cnt >= 32) {
-                cnt_h = IR_NEC_END_H;
-                cnt_l = IR_NEC_END_L;
-                if (repeat_flag) {
-                    cnt_l = IR_NEC_END_REPEAT_L;
-                }
-                ir_status = IR_STATUS_END;
-            } else {
-                cnt++;
-                if (_ir_data & BIT(0)) {
-                    cnt_h = IR_NEC_BIT_1_H;
-                    cnt_l = IR_NEC_BIT_1_L;
-                } else {
-                    cnt_h = IR_NEC_BIT_0_H;
-                    cnt_l = IR_NEC_BIT_0_L;
-                }
-                ir_status = IR_STATUS_DATA;
-                _ir_data >>= 1;
-            }
+    case IR_END:
+        ir_encode_tx_bit(END_BIT);
+        ir_encode->state = IR_REPEAT;
+        break;
+    case IR_REPEAT:
+        if (ir_encode->repeat_en) {
+            ir_encode_tx_bit(REPEAT_BIT);
+            ir_encode->state = IR_REPEAT_END;
+        } else {
+            gptimer_pause(ir_encode->timer_tid);
+            ir_encode->state = IR_IDLE;
         }
         break;
-    case IR_STATUS_END:
-        if ((cnt_h == 0) && (cnt_l == 0)) {
-            if (repeat_flag) {
-                cnt_h = IR_NEC_REPEAT_H;
-                cnt_l = IR_NEC_REPEAT_L;
-                ir_status = IR_STATUS_REPEAT;
-            } else {
-                ir_status = IR_STATUS_IDLE;
-            }
-        }
+    case IR_REPEAT_END:
+        ir_encode_tx_bit(REPEAT_END_BIT);
+        ir_encode->state = IR_REPEAT;
         break;
     default:
         break;
     }
+
 }
 
 void ir_encoder_init(u32 gpio, u32 freq, u32 duty)
 {
     log_info("func:%s(), line:%d\n", __func__, __LINE__);
-    const struct gptimer_pwm_config pwm_config = {
-        .port = gpio / IO_GROUP_NUM,
-        .pin = gpio % IO_GROUP_NUM,
-        .freq = freq,
-        .pwm_duty_X10000 = duty,
-        .tid = -1,
+    ir_encoder_malloc();
+
+    const struct gptimer_config pwm_config = {
+        .pwm.freq = freq, //设置频率
+        .pwm.port = (gpio / IO_GROUP_NUM), //设置输出IO
+        .pwm.pin = BIT(gpio % IO_GROUP_NUM), //设置输出IO
+        .pwm.duty = duty, //设置占空比
+        .mode = GPTIMER_MODE_PWM, //设置工作模式
     };
-    pwm_tid = gptimer_pwm_init(&pwm_config);
-    log_info("pwm_config tid = %d\n", pwm_tid);
+#ifdef TCFG_IR_ENCODER_TIMER_TID
+    ir_encode->pwm_tid = (u8)gptimer_init(TCFG_IR_ENCODER_TIMER_TID, &pwm_config); //用户配置固定timer
+#else
+    ir_encode->pwm_tid = (u8)gptimer_init(TIMERx, &pwm_config); //内部分配空闲timer
+#endif
+    log_info("pwm_config tid = %d\n", ir_encode->pwm_tid);
     gpio_set_mode(IO_PORT_SPILT(gpio), PORT_OUTPUT_LOW);
-    gptimer_start(pwm_tid);
-    gptimer_pwm_disable(pwm_tid);
+    gptimer_start(ir_encode->pwm_tid);
+    gptimer_pwm_disable(ir_encode->pwm_tid);
 
     const struct gptimer_config timer_config = {
-        .resolution_us = IR_NEC_PULSE_UNIT,
-        .irq_cb = ir_encode_callback,
-        .tid = -1,
-        .irq_priority = 7,
+        .timer.period_us = IR_NEC_PULSE_UNIT, //设置定时周期
+        .irq_cb = ir_encode_irq, //设置中断回调函数
+        .irq_priority = 3, //设置中断优先级
+        .mode = GPTIMER_MODE_TIMER, //设置工作模式
     };
-    timer_tid = gptimer_init(&timer_config);
-    log_info("timer_config tid = %d\n", timer_tid);
+#ifdef TCFG_IR_ENCODER_PWM_TID
+    ir_encode->timer_tid = (u8)gptimer_init(TCFG_IR_ENCODER_PWM_TID, &timer_config); //用户配置固定timer
+#else
+    ir_encode->timer_tid = (u8)gptimer_init(TIMERx, &timer_config); //内部分配空闲timer
+#endif
+    log_info("timer_config tid = %d\n", ir_encode->timer_tid);
 }
 
-u32 ir_encode_tx(u8 ir_addr, u8 ir_cmd, u8 repeat_en)
+void ir_encoder_deinit()
 {
-    if (ir_status != IR_STATUS_IDLE) {
+    log_info("func:%s(), line:%d\n", __func__, __LINE__);
+    gptimer_deinit(ir_encode->pwm_tid);
+    gptimer_deinit(ir_encode->timer_tid);
+    ir_encode->state = IR_IDLE;
+    ir_encoder_free();
+}
+
+u32 ir_encoder_tx(u8 ir_addr, u8 ir_cmd, u8 repeat_en)
+{
+    if (ir_encode->state != IR_IDLE) {
         return -1;
     }
-    u32 user_data;
-    u32 _user_data;
-    user_data = (ir_addr << 24) + ((0xbf << 16) & 0xff0000) + (ir_cmd << 8) + ((~ir_cmd) & 0xff);
-    ir_data = user_data;
-    _user_data = ((~ir_cmd << 24) & 0xff000000) + (ir_cmd << 16) + ((0xbf << 8) & 0xff00) + (ir_addr);
-    _ir_data = _user_data;
-    cnt_h = IR_NEC_HEAD_H;
-    cnt_l = IR_NEC_HEAD_L;
-    ir_status = IR_STATUS_HEAD;
-    repeat_flag = repeat_en;
-    log_info("ir_data 0x%08x\n", ir_data);
-    log_info("_ir_data 0x%08x\n", _ir_data);
 
-    gptimer_start(timer_tid);
+    u32 cmd_not = (~ir_cmd & 0xFF) << 24;
+    u32 addr_not = (~ir_addr & 0xFF) << 8;
+
+    ir_encode->ir_data = cmd_not | (ir_cmd << 16) | addr_not | ir_addr;
+
+    ir_encode->repeat_en = repeat_en;
+    log_info("ir_data 0x%08x repeat_en : %d\n", ir_encode->ir_data, ir_encode->repeat_en);
+
+    gptimer_start(ir_encode->timer_tid);
+
     return 0;
 }
 
-u32 ir_encode_repeat_stop()
+// 匹配海信电视红外发数控制
+u32 ir_encoder_tx_hx(u8 ir_addr, u8 ir_cmd, u8 repeat_en)
 {
-    repeat_flag = 0;
+    if (ir_encode->state != IR_IDLE) {
+        return -1;
+    }
+
+    u32 cmd_not = (~ir_cmd & 0xFF) << 24;
+
+    ir_encode->ir_data = cmd_not | (ir_cmd << 16) | (0xbf << 8) | ir_addr;
+
+    ir_encode->repeat_en = repeat_en;
+    log_info("ir_data 0x%08x repeat_en : %d\n", ir_encode->ir_data, ir_encode->repeat_en);
+
+    gptimer_start(ir_encode->timer_tid);
+
     return 0;
+}
+
+void ir_encoder_repeat_stop()
+{
+    ir_encode->repeat_en = 0;
 }
 
 static u8 ir_encoder_status_get()
 {
-    if (ir_status == IR_STATUS_IDLE) {
+    if (ir_encode->state == IR_IDLE) {
         return 1;
     } else {
         return 0;

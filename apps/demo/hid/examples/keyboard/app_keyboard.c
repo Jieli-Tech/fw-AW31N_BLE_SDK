@@ -12,6 +12,7 @@
     *   Copyright:(c)JIELI  2023-2031  @ , All Rights Reserved.
 *********************************************************************************************/
 #include <stdlib.h>
+#include "cpu_debug.h"
 #include "msg.h"
 #include "includes.h"
 #include "app_config.h"
@@ -29,6 +30,7 @@
 #include "sys_timer.h"
 #include "gpio.h"
 #include "user_cfg.h"
+#include "my_malloc.h"
 #if RCSP_BTMATE_EN
 #include "rcsp_bluetooth.h"
 #endif
@@ -43,8 +45,10 @@
 #define LOG_CLI_ENABLE
 #include "log.h"
 
+#define  HID_DEBUG_TIMER_INFO             0
+
 //测试发数据
-#define  HID_TEST_KEEP_SEND_EN        1
+#define  HID_TEST_KEEP_SEND_EN            1
 
 // consumer key
 #define CONSUMER_VOLUME_INC             0x0001
@@ -223,6 +227,7 @@ static void hidkey_app_key_deal_test(uint8_t key_type, uint8_t key_value)
             hidkey_test_keep_send_deinit();
         }
         log_info("hidkey_keep_send_flag=%d\n", hidkey_keep_send_flag);
+        sleep_run_check_enalbe(!hidkey_keep_send_flag);
         return;
     }
 #endif
@@ -292,13 +297,22 @@ static void hidkey_app_key_deal_test(uint8_t key_type, uint8_t key_value)
 static void hidkey_set_soft_poweroff(void)
 {
     log_info("hidkey_set_soft_poweroff\n");
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
     hidkey_is_active = 1;
+#endif
 
     btstack_ble_exit(0);
 
     if (ble_hid_is_connected()) {
+        /* if(ble_comm_dev_is_connected(GATT_ROLE_SERVER) || ble_comm_dev_is_connected(GATT_ROLE_CLIENT)) { */
         //延时确保BT退出链路断开
+#if (TCFG_LOWPOWER_PATTERN == SOFT_MODE)
+        //soft 方式非必须等链路断开
         sys_timeout_add(NULL, app_power_set_soft_poweroff, WAIT_DISCONN_TIME_MS);
+#elif (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        //must wait disconn
+        app_power_soft.wait_disconn = 1;
+#endif
     } else {
         app_power_set_soft_poweroff(NULL);
     }
@@ -321,21 +335,25 @@ static void hidkey_app_bt_start()
     uint32_t sys_clk =  clk_get("sys");
     bt_pll_para(TCFG_CLOCK_OSC_HZ, sys_clk, 0, 0);
 
-#if TCFG_NORMAL_SET_DUT_MODE
-    clk_set("sfc", TCFG_CLOCK_DUT_SFC_HZ);
-    user_sele_dut_mode(1);
-#endif
-
-#if !TCFG_NORMAL_SET_DUT_MODE
+    //bt normal mode
     btstack_ble_start_before_init(&hidkey_ble_config, 0);
     le_hogp_set_reconnect_adv_cfg(ADV_DIRECT_IND_LOW, 5000);
     le_hogp_set_output_callback(hidkey_recv_callback);
-#endif
+
 
     cfg_file_parse(0);
     btstack_init();
 }
 
+static void hidkey_timer_test_handle(void *priv)
+{
+#if HID_DEBUG_TIMER_INFO
+    log_info("timer_1s");
+    static u8 cnt = 0;
+    if (++cnt % 5 == 0) {
+    }
+#endif
+}
 /*************************************************************************************************/
 /*!
  *  \brief      app 入口
@@ -367,10 +385,15 @@ static void hidkey_app_start()
 
 #if (TCFG_HID_AUTO_SHUTDOWN_TIME)
     //无操作定时软关机
-    hidkey_auto_shutdown_timer = sys_timeout_add(NULL, hidkey_set_soft_poweroff, TCFG_HID_AUTO_SHUTDOWN_TIME * 1000);
+    hidkey_auto_shutdown_timer = sys_timeout_add(NULL, (void *)hidkey_set_soft_poweroff, TCFG_HID_AUTO_SHUTDOWN_TIME * 1000);
 #endif
 
-    int msg[2] = {0};
+#if HID_DEBUG_TIMER_INFO
+    sys_timer_add(0, hidkey_timer_test_handle, 1000);
+#endif
+
+
+    int msg[4] = {0};
     while (1) {
         get_msg(sizeof(msg) / sizeof(int), msg);
         app_comm_process_handler(msg);
@@ -527,6 +550,12 @@ static void hidkey_hogp_ble_status_callback(ble_state_e status, uint8_t value)
         }
 #endif
         log_info("BLE_ST_DISCONN BY LOCAL\n");
+#if (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
+        if (app_power_soft.wait_disconn) {
+            app_power_soft.wait_disconn = 0;
+            app_power_set_soft_poweroff(NULL);
+        }
+#endif
         break;
 
     case BLE_ST_NOTIFY_IDICATE:
@@ -534,14 +563,15 @@ static void hidkey_hogp_ble_status_callback(ble_state_e status, uint8_t value)
         break;
 
     case BLE_ST_CONNECT_UPDATE_REQUEST:
-#if TCFG_LED_ENABLE
-        // 连接完成灯灭
-        led_operate(LED_OFF);
-#endif
         log_info("BLE_ST_CONNECT_UPDATE_REQUEST\n");
         break;
 
     case BLE_ST_CONNECTION_UPDATE_OK:
+#if TCFG_LED_ENABLE
+        // 连接完成灯灭
+        led_operate(LED_CLOSE);
+#endif
+
         // update timer period from connect inteval
         log_info("BLE_ST_CONNECTION_UPDATE_OK, INTERVAL:%d\n", value);
 #if HID_TEST_KEEP_SEND_EN
@@ -625,7 +655,7 @@ static int hidkey_event_handler(struct application *app, struct sys_event *event
 {
 #if (TCFG_HID_AUTO_SHUTDOWN_TIME)
     //重置无操作定时计数
-    if (event->type != SYS_DEVICE_EVENT || DEVICE_EVENT_FROM_POWER != event->arg) { //过滤电源消息
+    if (event->type != SYS_DEVICE_EVENT || DEVICE_EVENT_FROM_POWER != (int)event->arg) { //过滤电源消息
         sys_timer_modify(hidkey_auto_shutdown_timer, TCFG_HID_AUTO_SHUTDOWN_TIME * 1000);
     }
 #endif

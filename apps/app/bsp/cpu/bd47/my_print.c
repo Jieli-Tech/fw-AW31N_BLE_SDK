@@ -9,6 +9,7 @@
 //TODO 暂时不放入date段,for nv_ram warn!!
 void put_u4hex(u8 dat)
 {
+#ifdef CONFIG_DEBUG_ENABLE
     dat = 0xf & dat;
 
     if (dat > 9) {
@@ -16,11 +17,13 @@ void put_u4hex(u8 dat)
     } else {
         putchar(dat + '0');
     }
+#endif
 }
 /* AT(.log_ut.text.cache.L2) */
 //TODO 暂时不放入date段,for nv_ram warn!!
 static void xput_u32hex(u32 dat)
 {
+#ifdef CONFIG_DEBUG_ENABLE
     putchar('0');
     putchar('x');
     put_u4hex(dat >> 28);
@@ -34,13 +37,16 @@ static void xput_u32hex(u32 dat)
 
     put_u4hex(dat >> 4);
     put_u4hex(dat);
+    putchar('\r');
     putchar('\n');
+#endif
 }
 #if 0
 
 AT(.log_ut.text.cache.L2)
 void put_u32hex0(u32 dat)
 {
+#ifdef CONFIG_DEBUG_ENABLE
     putchar('0');
     putchar('x');
     put_u4hex(dat >> 28);
@@ -55,6 +61,7 @@ void put_u32hex0(u32 dat)
     put_u4hex(dat >> 4);
     put_u4hex(dat);
     putchar(' ');
+#endif
 }
 AT(.log_ut.text.cache.L2)
 u32 u32d_tab[] = {
@@ -72,6 +79,7 @@ u32 u32d_tab[] = {
 AT(.log_ut.text.cache.L2)
 void put_u32d(u32 dat)
 {
+#ifdef CONFIG_DEBUG_ENABLE
     u32 i, tmp;
     u32 zero = 0;
     putchar(' ');
@@ -93,25 +101,32 @@ void put_u32d(u32 dat)
     if (0 == zero) {
         put_u4hex(tmp);
     }
+    putchar('\r');
     putchar('\n');
+#endif
 }
 void put_u16hex0(u16 dat)
 {
+#ifdef CONFIG_DEBUG_ENABLE
     put_u4hex(dat >> 12);
     put_u4hex(dat >> 8);
 
     put_u4hex(dat >> 4);
     put_u4hex(dat);
     putchar(' ');
+#endif
 }
 void put_u16hex(u16 dat)
 {
+#ifdef CONFIG_DEBUG_ENABLE
     put_u4hex(dat >> 12);
     put_u4hex(dat >> 8);
 
     put_u4hex(dat >> 4);
     put_u4hex(dat);
+    putchar('\r');
     putchar('\n');
+#endif
 }
 #endif
 
@@ -121,15 +136,17 @@ void put_u16hex(u16 dat)
 //TODO 暂时不放入date段,for nv_ram warn!!
 void put_u8hex(u8 dat)
 {
+#ifdef CONFIG_DEBUG_ENABLE
     put_u4hex(dat >> 4);
     put_u4hex(dat);
     putchar(' ');
+#endif
 }
 /* AT(.log_ut.text.cache.L2) */
 //TODO 暂时不放入date段,for nv_ram warn!!
 void printf_buf(const u8 *buf, int len)
 {
-
+#ifdef CONFIG_DEBUG_ENABLE
     u32 i ;
     //putchar('\n') ;
     //xput_u32hex((u32)buf) ;
@@ -140,13 +157,16 @@ void printf_buf(const u8 *buf, int len)
             if (0 != i) {
                 // put_u32hex0(len);
                 // put_u32hex0(i);
+                putchar('\r') ;
                 putchar('\n') ;
             }
         }
 
         put_u8hex(buf[i]) ;
     }
+    putchar('\r') ;
     putchar('\n') ;
+#endif
 }
 
 void put_buf(u8 *buf, u32 len)
@@ -156,6 +176,7 @@ void put_buf(u8 *buf, u32 len)
 
 __attribute__((weak))void put_u32hex(u32 dat)
 {
+#ifdef CONFIG_DEBUG_ENABLE
     putchar('0');
     putchar('x');
 
@@ -168,6 +189,7 @@ __attribute__((weak))void put_u32hex(u32 dat)
     put_u4hex(dat >> 4);
     put_u4hex(dat);
     putchar(' ');
+#endif
 }
 
 

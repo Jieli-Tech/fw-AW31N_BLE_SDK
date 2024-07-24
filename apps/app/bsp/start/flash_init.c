@@ -71,8 +71,6 @@ int flash_info_init(void)
     dev_ioctl(device, IOCTL_SET_PROTECT_INFO, (u32)flash_code_protect_callback);
     dev_close(device);
 
-    norflash_set_write_protect(1);
-
     return 0;
 }
 struct vfs_attr *get_vm_attr_p(void)

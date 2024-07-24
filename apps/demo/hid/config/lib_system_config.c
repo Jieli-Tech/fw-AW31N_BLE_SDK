@@ -17,7 +17,14 @@
 
 
 ///打印是否时间打印信息
-const int config_printf_time         = 1;
+const int config_printf_time        = 1;
+
+///打印printf\log\puts等接口控制关闭,代码优化
+#ifdef CONFIG_DEBUG_ENABLE
+const int config_debug_log_enable  = 1;
+#else
+const int config_debug_log_enable  = 0;
+#endif
 
 ///异常中断，asser打印开启
 #ifdef CONFIG_RELEASE_ENABLE

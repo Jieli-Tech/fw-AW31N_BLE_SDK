@@ -100,6 +100,4 @@ u8 get_boot_rom();
 
 void *__port_init(u32 arg);
 
-void gpio_close(JL_PORT_TypeDef *jl_port, u32 val);
-
 #endif

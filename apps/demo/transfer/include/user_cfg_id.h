@@ -10,6 +10,7 @@ enum {
     CFG_BLE_BONDING_REMOTE_INFO2 = 34,
     CFG_AAP_MODE_INFO           = 35,
     CFG_COORDINATE_ADDR         = 36,
+    AT_CHAR_DEV_NAME            = 37,
 };
 
 #endif /* #ifndef _USER_CFG_ID_H_ */

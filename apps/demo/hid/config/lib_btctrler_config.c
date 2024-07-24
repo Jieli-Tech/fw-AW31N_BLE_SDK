@@ -21,6 +21,8 @@
  */
 #if TCFG_USER_BLE_ENABLE
 const int config_btctler_modules        = BT_MODULE_LE;
+#else
+const int config_btctler_modules        = 0;
 #endif
 
 #ifdef CONFIG_NEW_BREDR_ENABLE
@@ -123,8 +125,19 @@ const int config_delete_link_key          = 1;
 
 const int config_rf_slot_unit = 625;
 
+#if (CONFIG_BLE_PHY_SET == CONFIG_SET_1M_PHY)
 #define SET_SELECT_PHY_CFG   0
-/* #define SET_SELECT_PHY_CFG   LE_2M_PHY|LE_CODED_PHY */
+const int config_btctler_coded_type = CONN_SET_PHY_OPTIONS_S2;
+#elif (CONFIG_BLE_PHY_SET == CONFIG_SET_2M_PHY)
+#define SET_SELECT_PHY_CFG   LE_2M_PHY
+const int config_btctler_coded_type = CONN_SET_PHY_OPTIONS_S2;
+#elif (CONFIG_BLE_PHY_SET == CONFIG_SET_CODED_S2_PHY)
+#define SET_SELECT_PHY_CFG   LE_CODED_PHY
+const int config_btctler_coded_type = CONN_SET_PHY_OPTIONS_S2;
+#elif (CONFIG_BLE_PHY_SET == CONFIG_SET_CODED_S8_PHY)
+#define SET_SELECT_PHY_CFG   LE_CODED_PHY
+const int config_btctler_coded_type = CONN_SET_PHY_OPTIONS_S8;
+#endif
 
 #if CONFIG_BT_SM_SUPPORT_ENABLE
 #define SET_ENCRYPTION_CFG   LE_ENCRYPTION
@@ -150,7 +163,7 @@ const int config_btctler_le_master_multilink = 0;
 
 #if CONFIG_BLE_HIGH_SPEED
 const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG | LE_DATA_PACKET_LENGTH_EXTENSION | LE_2M_PHY;
-const int config_btctler_le_acl_packet_length = 251;
+const int config_btctler_le_acl_packet_length = 48;
 #else
 const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG;
 /* const uint64_t config_btctler_le_features = SET_SELECT_PHY_CFG; */
@@ -179,16 +192,17 @@ const int config_btctler_server_number = 0;
 
 // LE
 const int config_btctler_le_slave_conn_update_winden = 500;//range:100 to 2500
-
-// LE vendor baseband
-#if CONFIG_APP_KEYPAGE
-// fix:翻页控制异常
-const u32 config_vendor_le_bb = VENDOR_BB_MD_CLOSE;
-#else
-const u32 config_vendor_le_bb = 0;
-#endif
-/* const u32 config_vendor_le_bb = VENDOR_BB_MD_CLOSE | VENDOR_BB_CONNECT_SLOT; */
+const int config_btctler_le_clock_accuracy = 500;
 const u32 config_low_power_timeout_reserved = 1025;//低功耗蓝牙预留时间
+/*-----------------------------------------------------------*/
+// LE vendor baseband set
+/* const u32 config_vendor_le_bb = VENDOR_BB_MD_CLOSE | VENDOR_BB_CONNECT_SLOT; */
+u32 config_vendor_le_bb = 0;
+void set_config_vendor_le_bb(u32 vendor_le_bb)
+{
+    config_vendor_le_bb = vendor_le_bb;
+}
+/*-----------------------------------------------------------*/
 
 /*-----------------------------------------------------------*/
 /**
@@ -200,13 +214,6 @@ const int config_btctler_single_carrier_en = 1;   ////单模ble才设置
 #else
 const int config_btctler_single_carrier_en = 0;
 #endif
-
-#if SNIFF_MODE_RESET_ANCHOR
-const int sniff_support_reset_anchor_point = 1;   //sniff状态下是否支持reset到最近一次通信点，用于HID
-#else
-const int sniff_support_reset_anchor_point = 0;   //sniff状态下是否支持reset到最近一次通信点，用于HID
-#endif
-const int sniff_long_interval = (500 / 0.625);    //sniff状态下进入long interval的通信间隔(ms)
 
 const int config_rf_oob = 0;
 

@@ -308,7 +308,11 @@ void eeprom_test_main()
     log_info("read data:");
     /* log_info_hexdump(eeprom_rbuf,IIC_TRANCE_LEN); */
     for (i = 0; i < IIC_TRANCE_LEN; i++) {
-        printf("%x ", eeprom_rbuf[i]);
+        /* printf("%x ", eeprom_rbuf[i]); */
+        put_u8hex(eeprom_rbuf[i]);
+        if (i % 16 == 15) {
+            putchar('\n');
+        }
     }
     putchar('\n');
     if (flag == 0) {
