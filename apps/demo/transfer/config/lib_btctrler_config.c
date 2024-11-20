@@ -155,6 +155,8 @@ const int config_btctler_coded_type = CONN_SET_PHY_OPTIONS_S8;
 
 #if CONFIG_BT_GATT_SERVER_NUM
 #define SET_SLAVE_ROLS_CFG   (LE_ADV | LE_SLAVE)
+#elif CONFIG_APP_MULTI && CONFIG_BT_NOCONN_ADV_NUM
+#define SET_SLAVE_ROLS_CFG   (LE_ADV)
 #else
 #define SET_SLAVE_ROLS_CFG   0
 #endif
@@ -162,12 +164,19 @@ const int config_btctler_coded_type = CONN_SET_PHY_OPTIONS_S8;
 #if CONFIG_BT_GATT_CLIENT_NUM
 #define SET_MASTER_ROLS_CFG   (LE_SCAN | LE_INIT | LE_MASTER)
 const int config_btctler_le_afh_en = 0;//TODO for ram optimize
+#elif CONFIG_APP_MULTI && CONFIG_BT_NOCONN_SCAN_NUM
+#define SET_MASTER_ROLS_CFG   (LE_SCAN)
+const int config_btctler_le_afh_en = 0;//TODO for ram optimize
 #else
 #define SET_MASTER_ROLS_CFG   0
 const int config_btctler_le_afh_en = 0;
 #endif
 
+#if CONFIG_APP_MULTI
+const int config_btctler_le_master_multilink = ((CONFIG_BT_GATT_CLIENT_NUM + CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_NOCONN_SCAN_NUM + CONFIG_BT_NOCONN_ADV_NUM) > 1) ? 1 : 0;
+#else
 const int config_btctler_le_master_multilink = ((CONFIG_BT_GATT_CLIENT_NUM + CONFIG_BT_GATT_SERVER_NUM) > 1) ? 1 : 0;
+#endif
 
 #if CONFIG_APP_NONCONN_24G
 const uint64_t config_btctler_le_features = 0;
@@ -192,18 +201,29 @@ const int config_btctler_le_acl_total_nums = 4;
 
 #else
 
-#if CONFIG_BLE_HIGH_SPEED
-const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG | LE_DATA_PACKET_LENGTH_EXTENSION | EXT_ADV_CFG;// | LE_2M_PHY;
-const int config_btctler_le_acl_packet_length = 48;
+#if CONFIG_APP_MULTI
+#define CONFIG_BT_LINK (CONFIG_BT_GATT_CONNECTION_NUM + EXT_ADV_CFG_HW + CONFIG_BT_NOCONN_ADV_NUM + CONFIG_BT_NOCONN_SCAN_NUM)
 #else
-const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG | EXT_ADV_CFG;
-const int config_btctler_le_acl_packet_length = 27;
+#define CONFIG_BT_LINK (CONFIG_BT_GATT_CONNECTION_NUM + EXT_ADV_CFG_HW)
 #endif
 
+#if CONFIG_BLE_HIGH_SPEED
+const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG | LE_DATA_PACKET_LENGTH_EXTENSION | EXT_ADV_CFG | LE_2M_PHY;
+const int config_btctler_le_acl_total_nums = (CONFIG_BT_LINK * 3) + 4;
+#else
+const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG | EXT_ADV_CFG;
+const int config_btctler_le_acl_total_nums = (CONFIG_BT_LINK * 3) + 1;
+#endif
+
+const int config_btctler_le_acl_packet_length = PACKET_DATE_LEN;
 const int config_btctler_le_roles    = SET_SLAVE_ROLS_CFG | SET_MASTER_ROLS_CFG;
+#if CONFIG_APP_MULTI
+const int config_btctler_le_hw_nums = CONFIG_BT_GATT_CONNECTION_NUM + EXT_ADV_CFG_HW  + CONFIG_BT_NOCONN_ADV_NUM + CONFIG_BT_NOCONN_SCAN_NUM;
+const int config_btctler_le_rx_nums = ((CONFIG_BT_GATT_CONNECTION_NUM + EXT_ADV_CFG_HW + CONFIG_BT_NOCONN_ADV_NUM + CONFIG_BT_NOCONN_SCAN_NUM) * 3) + 2;
+#else
 const int config_btctler_le_hw_nums = CONFIG_BT_GATT_CONNECTION_NUM + EXT_ADV_CFG_HW;
 const int config_btctler_le_rx_nums = ((CONFIG_BT_GATT_CONNECTION_NUM + EXT_ADV_CFG_HW) * 3) + 2;
-const int config_btctler_le_acl_total_nums = ((CONFIG_BT_GATT_CONNECTION_NUM + EXT_ADV_CFG_HW) * 3) + 1;
+#endif
 #endif
 
 #else
@@ -229,6 +249,7 @@ u32 config_vendor_le_bb = 0;
 #endif
 /* u32 config_vendor_le_bb = VENDOR_BB_MD_CLOSE | VENDOR_BB_CONNECT_SLOT; */
 const u32 config_low_power_timeout_reserved = 1025;//低功耗蓝牙预留时间
+const int config_btctler_le_conn_update_param_check = 1;//是否校验连接参数并发起reject
 
 /*-----------------------------------------------------------*/
 /**

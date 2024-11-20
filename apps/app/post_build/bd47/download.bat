@@ -22,7 +22,7 @@ copy /b %ELF_NAME%.bin+data.bin+lowpower_overlay.bin+update_overlay.bin app.bin
 @echo % date %
 cd / d % ~dp0
 
-isd_download.exe -tonorflash -dev bd47 -boot 0x3f31000 -div8 -wait 300 -uboot uboot.boot -app app.bin
+isd_download.exe -tonorflash -dev bd47 -boot 0x3f31000 -div8 -wait 300 -uboot uboot.boot -app app.bin -res cfg_tool.bin
 
 ufw_maker.exe -fw_to_ufw jl_isd.fw
 copy jl_isd.ufw update.ufw

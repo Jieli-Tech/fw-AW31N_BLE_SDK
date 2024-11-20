@@ -39,7 +39,6 @@
 #define LOG_TAG             "[main]"
 #include "log.h"
 
-__attribute__((noreturn))
 
 //extern void emu_init();
 extern void stack_inquire(void);
@@ -51,6 +50,9 @@ extern u8 g_testbox_uart_up_flag;
 #endif
 
 void boot_osc_1pin_init();
+
+
+__attribute__((noreturn))
 void c_main(int cfg_addr)
 {
     struct maskrom_argv mask_argv = {0};
@@ -107,6 +109,9 @@ void c_main(int cfg_addr)
 
     app_main();
     wdt_close();
+    while (1) {
+        ;
+    }
 
 #if 0
     wdt_close();

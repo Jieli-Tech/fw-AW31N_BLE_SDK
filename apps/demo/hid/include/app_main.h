@@ -61,6 +61,7 @@
 #define SYS_BT_EVENT_FORM_AT          (('I' << 24) | ('A' << 16) | ('T' << 8) | '\0')
 #define DEVICE_EVENT_FROM_ADAPTER      (('A' << 24) | ('D' << 16) | ('A' << 8) | '\0')
 #define DEVICE_EVENT_FROM_BOARD_UART   (('B' << 24) | ('D' << 16) | ('U' << 8) | '\0')
+#define DEVICE_EVENT_FROM_DUAL_UPDATE_UART   (('D' << 24) | ('U' << 16) | ('P' << 8) | '\0')
 
 enum app_state {
     APP_STA_CREATE,
@@ -199,10 +200,6 @@ struct adt_event {
     u8 args[3];
 };
 
-struct uart_event {
-    void *ut_bus;
-};
-
 struct uart_cmd_event {
     u8 type;
     u8 cmd;
@@ -258,7 +255,6 @@ struct sys_event {
         struct chargestore_event chargestore;
         struct ir_event     ir;
         struct pbg_event    pbg;
-        struct uart_event	uart;
         struct uart_cmd_event	uart_cmd;
         struct ai_event     ai;
         struct ear_event    ear;

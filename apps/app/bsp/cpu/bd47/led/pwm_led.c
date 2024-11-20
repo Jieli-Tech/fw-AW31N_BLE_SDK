@@ -430,6 +430,7 @@ void pwm_led_hw_init(void *pdata)
     pwm_led_io_mount();
 
     P33_CON_SET(P3_CLK_CON1, 0, 3, 5);  //ERC32K
+    P33_CON_SET(P3_VLD_KEEP, 3, 1, 1);  //LED_CLK_KEEP
     P33_CON_SET(P3_CLK_CON0, 3, 1, 0);  //LED_CLK_DIS
     JL_PLED->CON0 &= ~(0b11 << 2);      //PWM_LED选择LRD_200K做时钟源
     JL_PLED->CON0 &= ~(0b1111 << 4);    //时钟源不分频

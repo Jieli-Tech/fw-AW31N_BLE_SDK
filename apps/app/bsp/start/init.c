@@ -18,6 +18,8 @@
 #include "app_power_mg.h"
 #include "adc_dtemp_alog.h"
 #include "app_config.h"
+#include "cfg_bin.h"
+#include "user_cfg.h"
 
 //TODO
 #if 0//TESTBOX_UART_UPDATE_EN
@@ -48,6 +50,9 @@ void system_init(void)
 
     log_info(">>>AW31N_SDK INFO: %x,%d,time:%s,%s<<<", SDK_VERSION_CFG_DEFINE, SDK_VERSION_DATE_DEFINE,
              __DATE__, __TIME__);
+
+    cfg_bin_init();
+    cfg_file_parse(0);
 
     //TODO
 #if UPDATE_V2_EN

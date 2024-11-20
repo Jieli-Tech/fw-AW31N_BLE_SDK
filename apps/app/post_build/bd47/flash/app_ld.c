@@ -50,6 +50,9 @@ SECTIONS
         nk_ram_start = .;
       *(.not_keep_ram)
       /* *(.rcsp_not_keep_ram) */
+      *(.update_ctrl_ram)
+      *(.update_main_not_keep_ram)
+      *(.testbox_uart_not_keep_ram)
         . = ALIGN(4);
 		*(.sstack_magic);
         . = ALIGN(4);
@@ -69,7 +72,10 @@ SECTIONS
         PROVIDE(_nk_ram_malloc_end = .);
 
         PROVIDE(_nk_ram_remain_start = .);
+#if (TCFG_LOWPOWER_LOWPOWER_SEL == 2)
+//power_off
         . = _NOT_KEEP_RAM_SIZE + ORIGIN(ram0);
+#endif
         PROVIDE(nk_ram_end = .);
     } > ram0
 
@@ -228,8 +234,11 @@ SECTIONS
             *(.power_driver_osc.text.cache.L1.overlay)
 #endif
         . = ALIGN(4);
+        *(.*.text.btstack.le)
         #include "bt_include/btstack_lib_text.ld"
 		. = ALIGN(4);
+        *(.*.text.bb.le)
+        *(.*.text.ll.le)
         #include "bt_controller_include/btctler_lib_text.ld"
 
         _SPI_CODE_START = .;

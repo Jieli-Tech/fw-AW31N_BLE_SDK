@@ -130,32 +130,9 @@ void __attribute__((weak)) get_random_number(u8 *ptr, u8 len)
         delay_nops(10);
     }
 }
-static u8 bt_mac_addr_for_testbox[6] = {0};
+
 const u8 *bt_get_mac_addr()
 {
-    u8 mac_buf[6];
-    u8 mac_buf_tmp[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    u8 mac_buf_tmp2[6] = {0, 0, 0, 0, 0, 0};
-
-    do {
-        int ret = syscfg_read(CFG_BT_MAC_ADDR, mac_buf, 6);
-        if ((ret != 6) || !memcmp(mac_buf, mac_buf_tmp, 6) || !memcmp(mac_buf, mac_buf_tmp2, 6)) {
-            get_random_number(mac_buf, 6);
-            syscfg_write(CFG_BT_MAC_ADDR, mac_buf, 6);
-        }
-    } while (0);
-
-    syscfg_read(CFG_BT_MAC_ADDR, bt_mac_addr_for_testbox, 6);
-    if (!memcmp(bt_mac_addr_for_testbox, mac_buf_tmp, 6)) {
-        get_random_number(bt_mac_addr_for_testbox, 6);
-        syscfg_write(CFG_BT_MAC_ADDR, bt_mac_addr_for_testbox, 6);
-        log_info(">>>init mac addr!!!\n");
-    }
-
-    log_info("mac:");
-    log_info_hexdump(mac_buf, sizeof(mac_buf));
-    memcpy(bt_cfg.mac_addr, mac_buf, 6);
-
     return bt_cfg.mac_addr;
 }
 
@@ -164,7 +141,7 @@ void bt_set_mac_addr(u8 *addr)
     memcpy(bt_cfg.mac_addr, addr, 6);
 }
 
-
+static u8 bt_mac_addr_for_testbox[6] = {0};
 void bt_get_vm_mac_addr(u8 *addr)
 {
 #if 0
@@ -247,7 +224,6 @@ void cfg_file_parse(u8 idx)
 
     //-----------------------------CFG_BT_NAME--------------------------------------//
     //TODO
-#if 0
     ret = syscfg_read(CFG_BT_NAME, tmp, 32);
     if (ret < 0) {
         log_info("read bt name err\n");
@@ -259,8 +235,6 @@ void cfg_file_parse(u8 idx)
         memset(bt_cfg.ble_name, 0x00, LOCAL_NAME_LEN);
         memcpy(bt_cfg.ble_name, tmp, ret);
     }
-    /* g_printf("bt name config:%s\n", bt_cfg.ble_name); */
-#endif
     log_info("bt name config:%s\n", bt_cfg.ble_name);
 
 
@@ -270,7 +244,6 @@ void cfg_file_parse(u8 idx)
     bt_max_pwr_set(app_var.rf_power, 5, 8, bt_get_pwr_max_level());
     log_info("test rf config:%d, dut %d,bt_mode %d\n", bt_get_pwr_max_level(), TCFG_NORMAL_SET_DUT_MODE, CONFIG_BT_MODE);
 #else
-#if 0
     ret = syscfg_read(CFG_BT_RF_POWER_ID, &app_var.rf_power, 1);
     if (ret < 0) {
         log_debug("read rf err\n");
@@ -278,14 +251,7 @@ void cfg_file_parse(u8 idx)
     }
     bt_max_pwr_set(app_var.rf_power, 5, 8, SET_BLE_TX_POWER_LEVEL);
     log_info("rf config:%d\n", app_var.rf_power);
-#else
-    app_var.rf_power = 10;
-    bt_max_pwr_set(app_var.rf_power, 5, 8, SET_BLE_TX_POWER_LEVEL);
-    log_info("rf config:%d\n", SET_BLE_TX_POWER_LEVEL);
-
 #endif
-#endif
-    /* g_printf("rf config:%d\n", app_var.rf_power); */
 
     app_var.music_volume = 14;
     app_var.wtone_volume = 14;

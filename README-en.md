@@ -46,15 +46,21 @@ Compile Projects
 
 Please choose one of the following projects to compile. The directories below contain project files that facilitate development:
 
-* Bluetooth Applications: [TRANSFER](./apps/demo/transfer), applicable for: Transparent Transmission, Data Transmission, Scanning Device, Broadcasting Device.
-* Bluetooth Applications: [HID](./apps/demo/hid), applicable for: Remote Control, Self-Timer, Keyboard, Mouse, Page Turner.
+* Bluetooth Applications: [TRANSFER](./apps/demo/transfer) applicable for:  Transparent transmission, data transmission, scanning equipment, broadcast equipment, adapter, AT module.
+* Bluetooth Applications: [HID](./apps/demo/hid), applicable for: Remote control, self-timer, page Turner, keyboard, mouse.
 * [Documentation Link](https://doc.zh-jieli.com/AW31/zh-cn/master/module_demo/index.html)
 
-Please refer to the Tags for the released versions.
+See the Tags version release notes for details on the released features.
 
-Coming Soon:
+Latest version Features: 
 
-* Bluetooth Application: `Multi-Link`
+* Bluetooth connection features: `Universal master/slave multi-link,Private low delay 500us (single link), private low delay 1ms (single/dual link)`
+* System low power mode: `powerdown and poweroff modes are optional`
+* Burn feature support: `Support burn quick start function, Bluetooth MAC address range and triplet information and other burn options`
+
+Upcoming release features: 
+
+*  Bluetooth Application: `Bluetooth application: 'Universal 2.4G application, private price tag`
 
 
 The SDK support Codeblock & Make to build to project,make sure you already setup the enviroment

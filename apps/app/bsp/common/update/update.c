@@ -42,6 +42,7 @@
 #include "asm/pwm_led_hw.h"
 #endif
 
+#include "flash_init.h"
 /* #include "custom_cfg.h" */
 
 #define LOG_TAG_CONST       UPDATE
@@ -59,7 +60,6 @@
 /////////////////////////////undef macro/////////////////////////
 #define TCFG_UI_ENABLE 0
 #define CONFIG_UPDATE_DEBUG_ENABLE 0
-#define CONFIG_UPDATE_JUMP_TO_MASK 0
 #define TCFG_BT_BACKGROUND_ENABLE 0
 #define TCFG_AUTO_SHUT_DOWN_TIME 0
 #define OTA_TWS_SAME_TIME_ENABLE 0
@@ -114,7 +114,7 @@ u16 update_result_get(void)
 {
     u16 ret = UPDATA_NON;
 
-    if (CONFIG_UPDATE_ENABLE) {
+    if (UPDATE_V2_EN) {
         UPDATA_PARM *p = UPDATA_FLAG_ADDR;
         u16 crc_cal;
         crc_cal = CRC16(((u8 *)p) + 2, sizeof(UPDATA_PARM) - 2);	//2 : crc_val
@@ -132,7 +132,7 @@ u16 update_result_get(void)
 
 void update_result_set(u16 result)
 {
-    if (CONFIG_UPDATE_ENABLE) {
+    if (UPDATE_V2_EN) {
         UPDATA_PARM *p = UPDATA_FLAG_ADDR;
 
         memset(p, 0x00, sizeof(UPDATA_PARM));
@@ -155,7 +155,7 @@ void update_clear_result()
 
 bool update_success_boot_check(void)
 {
-    if (CONFIG_UPDATE_ENABLE) {
+    if (UPDATE_V2_EN) {
         u16 result = g_updata_flag & 0xffff;
         u16 up_tpye = g_updata_flag >> 16;
         if ((UPDATA_SUCC == result) && ((SD0_UPDATA == up_tpye) || (SD1_UPDATA == up_tpye) || (USB_UPDATA == up_tpye))) {
@@ -456,7 +456,7 @@ void update_mode_api_v2(UPDATA_TYPE type, void (*priv_param_fill_hdl)(UPDATA_PAR
 int update_check_sniff_en(void)
 
 {
-    if (CONFIG_UPDATE_ENABLE) {
+    if (UPDATE_V2_EN) {
         if (get_ota_status()) {
             log_info("ota ing...");
             return 0;
@@ -546,6 +546,7 @@ static void update_common_state_cbk(update_mode_info_t *info, u32 state, void *p
         memset((u8 *)&succ_report, 0x00, sizeof(succ_report_t));
         update_init_common_handle(info->type);
         dev_update_close_ui();
+        flash_code_set_unprotect();
         break;
 
     case UPDATE_CH_SUCESS_REPORT:
@@ -561,6 +562,7 @@ static void update_common_state_cbk(update_mode_info_t *info, u32 state, void *p
     switch (state) {
     case UPDATE_CH_EXIT:
         update_exit_common_handle(info->type, priv);
+        flash_code_set_protect();
         break;
     }
 }

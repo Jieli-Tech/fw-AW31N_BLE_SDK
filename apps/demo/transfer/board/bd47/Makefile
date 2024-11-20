@@ -107,8 +107,8 @@ DEFINES := \
 	-DSUPPORT_MS_EXTENSIONS \
 	-DSUPPORT_RESERVATION_RAM \
 	-DAPP_CASE_TRANSFER \
-	-DSDK_VERSION_CFG_DEFINE=0x110003 \
-	-DSDK_VERSION_DATE_DEFINE=20240717 \
+	-DSDK_VERSION_CFG_DEFINE=0x120001 \
+	-DSDK_VERSION_DATE_DEFINE=202401113 \
 	-DCONFIG_RELEASE_ENABLE \
 	-DHAS_VFS_EN=1 \
 	-DNOFLOAT \
@@ -185,6 +185,7 @@ INCLUDES := \
 
 # 需要编译的 .c 文件
 c_SRC_FILES := \
+	../../../../../apps/app/bsp/common/bt_common/ble_test_api.c \
 	../../../../../apps/app/bsp/common/code_switch/code_switch.c \
 	../../../../../apps/app/bsp/common/common_uart/common_uart_control.c \
 	../../../../../apps/app/bsp/common/config/lib_power_config.c \
@@ -223,6 +224,8 @@ c_SRC_FILES := \
 	../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common/le_gatt_client.c \
 	../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common/le_gatt_common.c \
 	../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common/le_gatt_server.c \
+	../../../../../apps/app/bsp/common/update/dual_update_crc_cal.c \
+	../../../../../apps/app/bsp/common/update/dual_update_demo.c \
 	../../../../../apps/app/bsp/common/update/testbox_uart_update.c \
 	../../../../../apps/app/bsp/common/update/testbox_update.c \
 	../../../../../apps/app/bsp/common/update/update.c \
@@ -258,6 +261,7 @@ c_SRC_FILES := \
 	../../../../../apps/app/bsp/device/device_app.c \
 	../../../../../apps/app/bsp/device/device_list.c \
 	../../../../../apps/app/bsp/start/bd47/main.c \
+	../../../../../apps/app/bsp/start/cfg_bin.c \
 	../../../../../apps/app/bsp/start/flash_init.c \
 	../../../../../apps/app/bsp/start/init.c \
 	../../../../../apps/demo/transfer/app_main.c \
@@ -282,8 +286,10 @@ c_SRC_FILES := \
 	../../../../../apps/demo/transfer/examples/idle/app_idle.c \
 	../../../../../apps/demo/transfer/examples/multi_conn/app_multi_conn.c \
 	../../../../../apps/demo/transfer/examples/multi_conn/ble_multi.c \
+	../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_adv.c \
 	../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_central.c \
 	../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_peripheral.c \
+	../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_scan.c \
 	../../../../../apps/demo/transfer/examples/nonconn_trans/app_nonconn_trans.c \
 	../../../../../apps/demo/transfer/examples/nonconn_trans/ble_noconn_deal.c \
 	../../../../../apps/demo/transfer/examples/trans_data/app_trans.c \

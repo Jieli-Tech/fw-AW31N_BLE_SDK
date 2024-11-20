@@ -312,7 +312,7 @@ static void keypage_key_operate(key_op op)
 static void keypage_app_key_deal_test(uint8_t key_type, uint8_t key_value)
 {
     uint16_t key_msg = 0;
-    log_info("app_key_evnet: %d,%d\n", key_type, key_value);
+    log_info("app_key_event: %d,%d\n", key_type, key_value);
 
 #if TCFG_LED_ENABLE
     led_operate(LED_KEY_UP);
@@ -609,7 +609,6 @@ static void keypage_app_bt_start()
 
     btstack_ble_start_before_init(&keypage_ble_config, 0);
     le_hogp_set_reconnect_adv_cfg(ADV_DIRECT_IND_LOW, 5000);
-    cfg_file_parse(0);
     btstack_init();
 }
 

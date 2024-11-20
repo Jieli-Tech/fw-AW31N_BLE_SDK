@@ -5,6 +5,7 @@
 #include "crc16.h"
 #include "log.h"
 #include "ioctl_cmds.h"
+#include "device.h"
 
 #if RCSP_BTMATE_EN
 
@@ -717,8 +718,17 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
 #else
             item_data = ble_get_adv_data_ptr(&len);
 #endif
-            memcpy(rsp_data + rsp_len, item_data, len);
-            rsp_len += len;
+            /* memcpy(rsp_data + rsp_len, item_data, len); */
+            /* rsp_len += len; */
+            while (i < len) {                           //如果rsp_data里有名字要把名字也拷贝出来
+                if (*(item_data + 1) == 0x09) {         //find HCI_EIR_DATATYPE_COMPLETE_LOCAL_NAME:0x09
+                    memcpy(rsp_data, item_data, *item_data + 1);
+                    rsp_len = *item_data + 1;
+                    break;
+                }
+                i += (1 + *item_data);
+                item_data += (1 + *item_data);
+            }
 
             if (rsp_len + sizeof(struct excfg_rsp_payload) + 2 > 31) {
                 printf("rsp data overflow!!!\n");
@@ -728,9 +738,9 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
                 memcpy(rsp_data + rsp_len + 2, &rsp_payload, sizeof(struct excfg_rsp_payload));
                 rsp_len += (2 + sizeof(struct excfg_rsp_payload));
                 addr[0] += 1;                                                        //修改地址，让手机重新发现服务, 这里地址的修改规则可以用户自行设置
-                printf("new adv_data:\n");
+                printf("new rsp_data:\n");
                 printf_buf(rsp_data, rsp_len);
-                custom_cfg_item_write(CFG_ITEM_ADV_IND, rsp_data, rsp_len);
+                custom_cfg_item_write(CFG_ITEM_SCAN_RSP, rsp_data, rsp_len);
             }
 
             //广播包里有0xff字段也要找出来去掉，小程序判断到adv和rsp有重复字段是会出错
@@ -743,9 +753,10 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
 #else
             item_data = ble_get_scan_rsp_ptr(&len);
 #endif
+            /* int j = 0; */
             while (i < len) {                           //找出不等于0xff的信息,拷贝到new_adv_data
-                /* if (*(item_data + 1) != 0xff) { */
-                if (*(item_data + 1) == 0x09) {
+                if (*(item_data + 1) != 0xff) {
+                    /* if (*(item_data + 1) == 0x09) { */
                     //memcpy(rsp_data, item_data, *item_data + 1);
                     memcpy(rsp_data + i, item_data, *item_data + 1);
                     new_adv_len += *item_data + 1;
@@ -753,12 +764,13 @@ static u32 ex_cfg_fill_content(ex_cfg_t *user_ex_cfg, u8 *write_flag)
                 i += (1 + *item_data);
                 item_data += (1 + *item_data);
             }
-            printf("new rsp_data:\n");
+            printf("new adv_data:\n");
             printf_buf(rsp_data, new_adv_len);
-            custom_cfg_item_write(CFG_ITEM_SCAN_RSP, rsp_data, new_adv_len);
+            custom_cfg_item_write(CFG_ITEM_ADV_IND, rsp_data, new_adv_len);
 
             /* free(rsp_data); */
         }
+
     } else {
         custom_cfg_item_write(CFG_ITEM_SCAN_RSP, item_data, len);
         /* CFG_ITEM_ADV_IND */
@@ -835,6 +847,7 @@ u32 ex_cfg_fill_content_api(void)
 #endif
         ex_cfg_fill_content(NULL, NULL);
     }
+
     return exif_info.addr;
 }
 

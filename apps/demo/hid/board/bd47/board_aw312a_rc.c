@@ -112,8 +112,13 @@ void key_wakeup_init()
 
     // adkey按键唤醒口
 #if KEY_AD_EN
+#if EXTERN_R_UP
     keys_config[index++] = create_key_io_wakeup_config(AD_KEY_IO, PORT_INPUT_FLOATING,
                            PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
+#else
+    keys_config[index++] = create_key_io_wakeup_config(AD_KEY_IO, PORT_INPUT_PULLUP_10K,
+                           PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
+#endif
 #endif
 
     // 矩阵按键列唤醒口

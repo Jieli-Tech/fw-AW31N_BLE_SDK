@@ -5,8 +5,8 @@
 
 //config
 #define LOWPOWER_CLOSE          0
-#define SLEEP_EN                1
-#define DEEP_SLEEP_EN           2
+#define SLEEP_EN                1 //power down
+#define DEEP_SLEEP_EN           2 //power off
 
 //config
 #define SOFT_MODE               0 //正常soft

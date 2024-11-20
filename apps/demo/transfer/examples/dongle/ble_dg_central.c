@@ -87,6 +87,7 @@ static struct ctl_pair_info_t dg_central_record_bond_info[SUPPORT_MAX_GATT_CLIEN
 //------------------------------------------------------
 static void dg_central_conn_config_set(struct ctl_pair_info_t *pair_info);
 static int  dg_central_event_packet_handler(int event, uint8_t *packet, uint16_t size, uint8_t *ext_param);
+static void dg_central_testbox_connect_mode(u8 en);
 static int (*dg_central_input_handler)(uint8_t *packet, uint16_t size);
 //------------------------------------------------------
 
@@ -612,7 +613,7 @@ static void dg_central_state_to_user(uint8_t state, uint8_t reason)
 #if CONFIG_BLE_CONNECT_SLOT
 /*************************************************************************************************/
 /*!
- *  \brief      1. 基带接口接收数据接口,和app_mouse绑定使用
+ *  \brief      1. 基带接口接收数据接口
                 2. 底层有事件触发后回调直接来上层拿数据发送,函数名不可修改，无需调用;
                 3. 不可做耗时操作（需要在us级）;
                 4. 数据接收不会再走dg_central_event_packet_handler-GATT_COMM_EVENT_GATT_DATA_REPORT
@@ -634,7 +635,7 @@ bool ll_conn_rx_acl_hook_get(const uint8_t *const data, size_t len)
     if ((data[1] & 0x20) && (conn_handle >= 0x50 && conn_handle < (0x50 + CONFIG_BT_GATT_CLIENT_NUM)) && l2cap_chl_id == 4) {
         uint16_t att_handle = little_endian_read_16(data, 9);
         if (att_handle != 0x27) {
-            putchar('e');
+            /* putchar('e'); */
             return false;
         }
         // mouse report id
@@ -671,7 +672,58 @@ bool ll_conn_rx_acl_hook_get(const uint8_t *const data, size_t len)
 
         return true;
     }
-    putchar('E');
+    //putchar('E');
+    return false;
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief      1. 用于做数据发送(适用于500us，1ms双连接流程)，不开sm优先级高于ll_conn_rx_acl_hook_get,
+                   return false则走ll_conn_rx_acl_hook_get流程
+                2. 底层有事件触发后回调直接来上层拿数据发送,函数名不可修改，无需调用;
+                3. 不可做耗时操作（需要在us级）;
+ *
+ *  \param
+ *
+ *  \return
+ *
+ *  \note
+ */
+/*************************************************************************************************/
+bool bb_le_rx_data_pdu_hook_get(void *priv, const u8 *data, u8 len)
+{
+    if (config_le_sm_support_enable) {
+        return false;
+    }
+
+    uint16_t conn_handle = ll_vendor_get_link_handle(priv);
+    if (!conn_handle) {
+        return false;
+    }
+
+    uint8_t hid_send_packet[MOUSE_USB_PACKET_LEN];
+    uint16_t l2cap_chl_id = little_endian_read_16(data, 2);
+    //check conn_handle,channel_id
+    if ((conn_handle >= 0x50 && conn_handle < (0x50 + CONFIG_BT_GATT_CLIENT_NUM)) && l2cap_chl_id == 4) {
+        uint16_t att_handle = little_endian_read_16(data, 5);
+        if (att_handle != 0x27) {
+            return false;
+        }
+
+        // mouse report id
+        hid_send_packet[0] = MOUSE_REPORT_ID;
+        // mouse report start data
+        const uint8_t *data_priv = &data[7];
+
+        uint8_t usb_status_ret = usb_slave_status_get();
+
+        if (usb_status_ret == USB_SLAVE_RESUME && dg_central_wait_usb_wakeup) {
+            wdt_clear();
+            memcpy(&hid_send_packet[1], data_priv, MOUSE_USB_PACKET_LEN - 1);
+            dongle_ble_hid_input_handler(hid_send_packet, MOUSE_USB_PACKET_LEN);
+            return true;
+        }
+    }
     return false;
 }
 
@@ -980,18 +1032,25 @@ static int dg_central_event_packet_handler(int event, uint8_t *packet, uint16_t 
     case GATT_COMM_EVENT_SCAN_DEV_MATCH: {
         log_info("match_dev:addr_type= %d,rssi= %d\n", packet[0], packet[7]);
         log_info_hexdump(&packet[1], 6);
+
+#if  SUPPORT_TEST_BOX_BLE_MASTER_TEST_EN
         if (packet[8] == 2) {
             log_info("is TEST_BOX\n");
+#if CONFIG_BLE_CONNECT_SLOT
+            dg_central_testbox_connect_mode(1);
+#endif
         }
-        /* client_match_cfg_t *match_cfg = ext_param; */
+#endif
         client_match_cfg_t match_cfg_buffer;
-        memcpy(&match_cfg_buffer, ext_param, sizeof(client_match_cfg_t));
-        client_match_cfg_t *match_cfg = &match_cfg_buffer;
+        if (ext_param) {
+            memcpy(&match_cfg_buffer, ext_param, sizeof(client_match_cfg_t));
+            client_match_cfg_t *match_cfg = &match_cfg_buffer;
 
-        if (match_cfg) {
-            log_info("match_mode: %d\n", match_cfg->create_conn_mode);
-            if (match_cfg->compare_data_len) {
-                log_info_hexdump((uint8_t *)match_cfg->compare_data, match_cfg->compare_data_len);
+            if (match_cfg) {
+                log_info("match_mode: %d\n", match_cfg->create_conn_mode);
+                if (match_cfg->compare_data_len) {
+                    log_info_hexdump((uint8_t *)match_cfg->compare_data, match_cfg->compare_data_len);
+                }
             }
         }
         //update info
@@ -1115,6 +1174,7 @@ static void dg_central_init(void)
 {
     log_info("%s\n", __FUNCTION__);
 
+#if CLIENT_PAIR_BOND_ENABLE
     if (!dg_central_bond_device_table) {
         int table_size = sizeof(dg_central_match_device_table) + sizeof(client_match_cfg_t) * SUPPORT_MAX_GATT_CLIENT;//设置名字匹配
         dg_central_bond_device_table_cnt = dg_central_search_config.match_devices_count + SUPPORT_MAX_GATT_CLIENT;
@@ -1126,7 +1186,9 @@ static void dg_central_init(void)
     if (0 == dg_central_pair_vm_do(NULL, 0)) {
         log_info("client already bond dev");
     }
-
+#else
+    ble_gatt_client_set_search_config(&dg_central_search_config);
+#endif
     dg_central_conn_config_set(NULL);
 }
 
@@ -1141,6 +1203,23 @@ void bt_ble_before_start_init(void)
     ble_comm_init(&dg_central_gatt_control_block);
 }
 
+void dg_central_testbox_connect_mode(u8 en)
+{
+#if SUPPORT_TEST_BOX_BLE_MASTER_TEST_EN
+    ble_module_enable(0);
+    if (en) {
+        struct ctl_pair_info_t  dg_central_testbox_scan_cfg;
+        dg_central_testbox_scan_cfg.conn_interval = 24;
+        dg_central_testbox_scan_cfg.conn_latency = SET_CONN_LATENCY;
+        dg_central_testbox_scan_cfg.conn_timeout = SET_CONN_TIMEOUT;
+        dg_central_conn_config_set(&dg_central_testbox_scan_cfg);
+    } else {
+        dg_central_conn_config_set(NULL);
+    }
+    ble_module_enable(1);
+#endif
+}
+
 void bt_ble_init(void)
 {
     log_info("%s\n", __FUNCTION__);
@@ -1151,6 +1230,7 @@ void bt_ble_init(void)
 #if CONFIG_BLE_CONNECT_SLOT
     // 设置高回报率模式
     ble_op_conn_us_unit(1);
+    ble_op_conn_init_2Mphy(1);
 #endif
 
     dg_central_init();

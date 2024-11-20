@@ -25,8 +25,8 @@
 static u8 tmp_buf[DMA_BUF_LEN] __attribute__((aligned(4))) sec(.update.bss.overlay) = {0};
 static u8 uart_buf[DMA_BUF_LEN] __attribute__((aligned(4))) sec(.update.bss.overlay);
 #else
-static u8 tmp_buf[DMA_BUF_LEN] __attribute__((aligned(4))) NOT_KEEP_RAM = {0};
-static u8 uart_buf[DMA_BUF_LEN] __attribute__((aligned(4))) NOT_KEEP_RAM;
+static u8 tmp_buf[DMA_BUF_LEN] __attribute__((aligned(4))) sec(.testbox_uart_not_keep_ram) = {0};
+static u8 uart_buf[DMA_BUF_LEN] __attribute__((aligned(4))) sec(.testbox_uart_not_keep_ram);
 #endif
 
 static volatile u8 is_testbox_uart_active = 0;	//串口升级空闲
@@ -52,6 +52,7 @@ static volatile u8 is_testbox_uart_active = 0;	//串口升级空闲
 struct testbox_uart_update_info {
     u32 baud;
     u32 uart_update_flag;
+    u8  io_port[6];
 };
 
 struct uart_upgrade_cmd {
@@ -326,10 +327,26 @@ static void app_testbox_loader_ufw_update_private_param_fill(UPDATA_PARM *p)
 
 static void testbox_uart_update_param_private_handle(UPDATA_PARM *p)
 {
-    u16 up_type = p->parm_type;
     struct testbox_uart_update_info testbox_uart_update_parm;
     testbox_uart_update_parm.baud = update_baudrate;
     testbox_uart_update_parm.uart_update_flag = TESTBOX_UART_UPDATE_FLAG;
+#if 0
+    char io_port_stirng[6] = {0};
+    if (TCFG_CHARGESTORE_PORT >= IO_PORTP_00) {
+        if (TCFG_CHARGESTORE_PORT == IO_PORTP_00) {
+            memcpy(io_port_stirng, "PP00", 4);
+        }
+        if (TCFG_CHARGESTORE_PORT == IO_PORT_DP) {
+            memcpy(io_port_stirng, "USBDP", 5);
+        }
+        if (TCFG_CHARGESTORE_PORT == IO_PORT_DM) {
+            memcpy(io_port_stirng, "USBDM", 5);
+        }
+    } else {
+        sprintf(&io_port_stirng[0], "P%c%02d", TCFG_CHARGESTORE_PORT / 16 + 'A', TCFG_CHARGESTORE_PORT % 16);
+    }
+    memcpy(&testbox_uart_update_parm.io_port[0], io_port_stirng, 6);
+#endif
 
     ASSERT(sizeof(struct testbox_uart_update_info) <= sizeof(p->parm_priv), "uart update parm size limit");
 
@@ -347,9 +364,10 @@ void testbox_uart_update_jump_flag_fill(void)
 static void testbox_uart_update_before_jump_handle(int up_type)
 {
     testbox_uart_update_jump_flag_fill();
-#if 0//CONFIG_UPDATE_JUMP_TO_MASK
+#if CONFIG_UPDATE_JUMP_TO_MASK
     log_info(">>>[test]:latch reset update\n");
-    latch_reset();
+    struct app_soft_flag_t soft_flag = {0};
+    latch_reset(&soft_flag);
 #else
     system_reset(UPDATE_FLAG);
 #endif

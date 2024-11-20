@@ -63,6 +63,7 @@
 #define SYS_BT_EVENT_FORM_AT          (('I' << 24) | ('A' << 16) | ('T' << 8) | '\0')
 #define DEVICE_EVENT_FROM_ADAPTER      (('A' << 24) | ('D' << 16) | ('A' << 8) | '\0')
 #define DEVICE_EVENT_FROM_BOARD_UART   (('B' << 24) | ('D' << 16) | ('U' << 8) | '\0')
+#define DEVICE_EVENT_FROM_DUAL_UPDATE_UART   (('D' << 24) | ('U' << 16) | ('P' << 8) | '\0')
 
 enum app_state {
     APP_STA_CREATE,

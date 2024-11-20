@@ -117,6 +117,5 @@ extern void bt_update_mac_addr(u8 *addr);
 extern void bt_set_local_name(char *name, u8 len);
 extern void bt_reset_and_get_mac_addr(u8 *addr);
 extern void bt_set_pair_code_en(u8 en);
-extern void cfg_file_parse(u8 idx);
 #endif
 

@@ -223,7 +223,6 @@
 #define TCFG_CLOCK_MODE                    CLOCK_MODE_ADAPTIVE
 #define TCFG_CLOCK_SYS_HZ                  48000000
 #define TCFG_CLOCK_LSB_HZ                  48000000
-#define TCFG_CLOCK_DUT_SFC_HZ              64000000 //dut 运行时不能降低sfc，尤其是cache小的芯片，出现通信周期太小导致load代码来不及或者来不及处理rxadj的情况
 
 
 //*********************************************************************************//

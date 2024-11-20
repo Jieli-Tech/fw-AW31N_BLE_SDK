@@ -38,6 +38,7 @@ typedef unsigned long long u64;
 #define sec(x)          __attribute__((section(#x)))
 #define SEC(x)          __attribute__((section(#x)))
 #define AT(x)           __attribute__((section(#x)))
+#define BT_AT(x)        // __attribute__((section(#x)))
 #define SET(x)          __attribute__((x))
 #define _GNU_PACKED_	__attribute__((packed))
 #define _INLINE_        __attribute__((always_inline))
@@ -52,6 +53,7 @@ typedef unsigned long long u64;
 #define sec_used(x)
 #define sec(x)
 #define AT(x)
+#define BT_AT(x)
 #define SET(x)
 #define _GNU_PACKED_
 #endif

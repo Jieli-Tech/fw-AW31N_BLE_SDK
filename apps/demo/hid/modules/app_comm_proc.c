@@ -24,6 +24,7 @@
 #include "msg.h"
 #include "cpu_debug.h"
 #include "rcsp_bluetooth.h"
+#include "btcontroller_config.h"
 
 #define LOG_TAG_CONST       COMM_PROC
 #define LOG_TAG             "[COMM_PROC]"
@@ -75,6 +76,10 @@ int app_comm_process_handler(int *msg)
     }
 #endif
 
+    if (TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API
+        || BT_MODE_IS(BT_BQB) || BT_MODE_IS(BT_FCC) || BT_MODE_IS(BT_FRE)) {
+        IcuFlushinvAll();
+    }
 
 #if (!TCFG_NORMAL_SET_DUT_MODE && CONFIG_BT_MODE == BT_NORMAL)
     sys_power_down(4000000);

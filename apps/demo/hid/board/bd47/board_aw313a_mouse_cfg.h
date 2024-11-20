@@ -5,6 +5,9 @@
 
 #ifdef CONFIG_BOARD_AW313A_MOUSE
 
+// 低时延测试模式，默认关闭sensor和滚轮外设
+#define LOW_CONNECT_INTERVAL_TEST      0
+
 // 鼠标板级 默认打开code switch omgsensor驱动 iokey为mouse模式
 //*********************************************************************************//
 //                                 配置开始                                        //
@@ -91,7 +94,11 @@
 //*********************************************************************************//
 //                                 iokey 配置                                      //
 //*********************************************************************************//
+#if LOW_CONNECT_INTERVAL_TEST
+#define KEY_IO_EN         	                DISABLE                  //<IO按键使能
+#else
 #define KEY_IO_EN         	                ENABLE                  //<IO按键使能
+#endif
 #define MOUSE_KEY_SCAN_MODE                 ENABLE_THIS_MOUDLE
 
 #define KEY_LK_VAL          BIT(0)   //1
@@ -110,7 +117,9 @@
 #define TCFG_IOKEY_MOUSE_RK_PORT		            IO_PORTA_10
 #define TCFG_IOKEY_MOUSE_HK_PORT		            IO_PORTA_09
 #define TCFG_IOKEY_MOUSE_CPI_PORT		            IO_PORTA_11
+#if (LOW_CONNECT_INTERVAL_TEST == 0)
 #define TCFG_IOKEY_MOUSE_SWITCH_PORT		        IO_PORTA_00
+#endif
 //*********************************************************************************//
 //                                 matrix key 配置                                 //
 //*********************************************************************************//
@@ -143,7 +152,9 @@
 //*********************************************************************************//
 //                                  optical mouse sensor配置                       //
 //*********************************************************************************//
+#if (LOW_CONNECT_INTERVAL_TEST == 0)
 #define TCFG_OMSENSOR_ENABLE
+#endif
 
 #define TCFG_HAL3205_EN                           DISABLE
 #define TCFG_HAL3212_EN                           ENABLE
@@ -155,7 +166,11 @@
 //*********************************************************************************//
 //                                  code switch配置                                //
 //*********************************************************************************//
+#if LOW_CONNECT_INTERVAL_TEST
+#define TCFG_CODE_SWITCH_ENABLE                   DISABLE_THIS_MOUDLE
+#else
 #define TCFG_CODE_SWITCH_ENABLE                   ENABLE_THIS_MOUDLE
+#endif
 #define TCFG_CODE_SWITCH_A_PHASE_PORT             IO_PORTA_07
 #define TCFG_CODE_SWITCH_B_PHASE_PORT             IO_PORTA_06
 
@@ -246,14 +261,13 @@
 //                                  时钟配置                                       //
 //*********************************************************************************//
 #define TCFG_CLOCK_SYS_PLL_SRC			   PLL_REF_XOSC//系统时钟源选择
-#define TCFG_CLOCK_SYS_PLL_HZ			   240000000                     //系统时钟设置
+#define TCFG_CLOCK_SYS_PLL_HZ			   192000000                     //系统时钟设置
 #define TCFG_CLOCK_OSC_HZ				   24000000                     //外界晶振频率设置
 #define TCFG_CLOCK_OSC_1PIN_EN             0//1:晶振单脚模式,0:双脚模式
 /* #define TCFG_CLOCK_MODE                 CLOCK_MODE_USR//CLOCK_MODE_ADAPTIVE */
 #define TCFG_CLOCK_MODE                    CLOCK_MODE_ADAPTIVE
 #define TCFG_CLOCK_SYS_HZ                  160000000
 #define TCFG_CLOCK_LSB_HZ                  48000000
-#define TCFG_CLOCK_DUT_SFC_HZ              64000000 //dut 运行时不能降低sfc，尤其是cache小的芯片，出现通信周期太小导致load代码来不及或者来不及处理rxadj的情况
 
 //*********************************************************************************//
 //                                供电模式配置                                     //

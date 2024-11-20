@@ -24,7 +24,12 @@
 #define ATT_CHECK_REMOTE_REQUEST_ENALBE     0    /*配置1,就是设备端主动检查*/
 
 //ATT发送的包长,    note: 23 <=need >= MTU
-#define ATT_LOCAL_MTU_SIZE        (64) /*一般是主机发起交换,如果主机没有发起,设备端也可以主动发起(ATT_MTU_REQUEST_ENALBE set 1)*/
+#if CONFIG_BLE_HIGH_SPEED
+/*一般是主机发起交换,如果主机没有发起,设备端也可以主动发起(ATT_MTU_REQUEST_ENALBE set 1)*/
+#define ATT_LOCAL_MTU_SIZE        (247) /*发送配PDU长度*/
+#else
+#define ATT_LOCAL_MTU_SIZE        (67) /**/
+#endif
 
 //ATT缓存的buffer支持缓存数据包个数
 #define ATT_PACKET_NUMS_MAX       (2)
@@ -37,12 +42,14 @@
 
 #define TEST_TRANS_CHANNEL_DATA      0 /*测试记录收发数据速度*/
 #define TEST_TRANS_NOTIFY_HANDLE     ATT_CHARACTERISTIC_ae02_01_VALUE_HANDLE /*主动发送hanlde,为空则不测试发数*/
+
 #if CONFIG_BLE_HIGH_SPEED
 #define TEST_TRANS_TIMER_MS          5
 #else
 #define TEST_TRANS_TIMER_MS          500
 #endif
-#define TEST_PAYLOAD_LEN            (244)/*发送配PDU长度是251的包*/
+
+#define TEST_PAYLOAD_LEN            (ATT_LOCAL_MTU_SIZE - 3)
 
 //共可用的参数组数
 #define CONN_PARAM_TABLE_CNT      (sizeof(trans_connection_param_table)/sizeof(struct conn_update_param_t))
@@ -64,9 +71,9 @@ static const struct conn_update_param_t trans_connection_param_table[] = {
 #if CONFIG_BLE_HIGH_SPEED
     {6, 12,  10, 400},// ios fast
 #endif
-    {16, 24, 0, 100},//11
-    {12, 28, 0, 100},//3.7
-    {8,  20, 0, 100},
+    {16, 24, 10, 400},//11
+    {12, 28, 10, 400},//3.7
+    {8,  20, 0, 400},
 };
 //---------------
 static const char user_tag_string[] = {EIR_TAG_STRING};

@@ -53,9 +53,9 @@
 static uint8_t multi_server_connection_update_enable = 1; ///0--disable, 1--enable
 //参数表
 static const struct conn_update_param_t multi_server_connection_param_table[] = {
-    {16, 24, 10, 600},//11
-    {12, 28, 10, 600},//3.7
-    {8,  20, 10, 600},
+    {16, 24, 10, 400},//11
+    {12, 28, 10, 400},//3.7
+    {8,  20, 10, 400},
 };
 
 //共可用的参数组数
@@ -599,6 +599,11 @@ static void multi_server_adv_config_set(void)
 void multi_server_init(void)
 {
     log_info("%s", __FUNCTION__);
+
+#if CONFIG_BLE_CONNECT_SLOT
+    // 设置高回报率模式
+    ble_op_conn_us_unit(1);
+#endif
 
 #if PER_PAIR_BOND_ENABLE
     if (0 == multi_server_pair_vm_do(multi_server_pair_bond_info, sizeof(multi_server_pair_bond_info), 0)) {

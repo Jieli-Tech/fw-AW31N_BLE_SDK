@@ -5,7 +5,7 @@
 #include "third_party/rcsp/JL_rcsp_protocol.h"
 #include "msg/msg.h"
 #include "custom_cfg.h"
-#include "asm/power/power_reset.h"
+#include "asm/power_interface.h"
 
 #if (UPDATE_V2_EN && RCSP_BTMATE_EN)
 
@@ -266,6 +266,19 @@ void JL_rcsp_msg_deal(RCSP_MSG msg, int argc, int *argv)
 
         rcsp_update_jump_to_loader_handle(NULL);
         break;
+    case MSG_JL_ENTER_UPDATE_MODE:
+        if (argc < 2) {
+            log_info("err: MSG_JL_ENTER_UPDATE_MODE too few argument, argc is %d\n", argc);
+            return;
+        }
+        log_info("MSG_JL_ENTER_UPDATE_MODE:%x %x\n", (u8)argv[0], (u8)argv[1]);
+        if (support_dual_bank_update_en) {
+            u8 status = 0;
+            JL_CMD_response_send((u8)argv[0], JL_PRO_STATUS_SUCCESS, (u8)argv[1], &status, 1);
+            post_msg(1, MSG_BLE_APP_UPDATE_START);
+        }
+        break;
+
     default:
         break;
     }
@@ -292,14 +305,18 @@ void app_ota_update_handle(void)
 {
     rcsp_update_data_api_register(rcsp_update_data_read, rcsp_update_status_response);
     register_receive_fw_update_block_handle(rcsp_update_handle);
-    if (RCSP_BLE == get_curr_device_type()) {
-        rcsp_update_loader_download_init(BLE_APP_UPDATA, rcsp_loader_download_result_handle);
-    } else if (RCSP_SPP == get_curr_device_type()) {
-        rcsp_update_loader_download_init(SPP_APP_UPDATA, rcsp_loader_download_result_handle);
-#if RCSP_HID_UPDATE_TYPE
+    if (support_dual_bank_update_en) {
+        rcsp_update_loader_download_init(DUAL_BANK_UPDATA, rcsp_loader_download_result_handle);
     } else {
-        rcsp_update_loader_download_init(USB_HID_UPDATA, rcsp_loader_download_result_handle);
+        if (RCSP_BLE == get_curr_device_type()) {
+            rcsp_update_loader_download_init(BLE_APP_UPDATA, rcsp_loader_download_result_handle);
+        } else if (RCSP_SPP == get_curr_device_type()) {
+            rcsp_update_loader_download_init(SPP_APP_UPDATA, rcsp_loader_download_result_handle);
+#if RCSP_HID_UPDATE_TYPE
+        } else {
+            rcsp_update_loader_download_init(USB_HID_UPDATA, rcsp_loader_download_result_handle);
 #endif
+        }
     }
 
 }
@@ -309,14 +326,18 @@ void app_update_msg_handle(int msg)
     case MSG_BLE_APP_UPDATE_START:
         rcsp_update_data_api_register(rcsp_update_data_read, rcsp_update_status_response);
         register_receive_fw_update_block_handle(rcsp_update_handle);
-        if (RCSP_BLE == get_curr_device_type()) {
-            rcsp_update_loader_download_init(BLE_APP_UPDATA, rcsp_loader_download_result_handle);
-        } else if (RCSP_SPP == get_curr_device_type()) {
-            rcsp_update_loader_download_init(SPP_APP_UPDATA, rcsp_loader_download_result_handle);
-#if RCSP_HID_UPDATE_TYPE
+        if (support_dual_bank_update_en) {
+            rcsp_update_loader_download_init(DUAL_BANK_UPDATA, rcsp_loader_download_result_handle);
         } else {
-            rcsp_update_loader_download_init(USB_HID_UPDATA, rcsp_loader_download_result_handle);
+            if (RCSP_BLE == get_curr_device_type()) {
+                rcsp_update_loader_download_init(BLE_APP_UPDATA, rcsp_loader_download_result_handle);
+            } else if (RCSP_SPP == get_curr_device_type()) {
+                rcsp_update_loader_download_init(SPP_APP_UPDATA, rcsp_loader_download_result_handle);
+#if RCSP_HID_UPDATE_TYPE
+            } else {
+                rcsp_update_loader_download_init(USB_HID_UPDATA, rcsp_loader_download_result_handle);
 #endif
+            }
         }
         break;
     }

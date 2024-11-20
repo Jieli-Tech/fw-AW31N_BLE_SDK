@@ -1,21 +1,39 @@
 /***********************************Jieli tech************************************************
   File : nvm_api.c
-  By   : liujie
-  Email: liujie@zh-jieli.com
-  date : 2022-12-26
+  date : 2024-11-2
 ********************************************************************************************/
 #include "typedef.h"
 #include "errno-base.h"
 #include "new_vm.h"
 #include "device.h"
+#include "gpio.h"
 
 #define LOG_TAG_CONST       NORM
 #define LOG_TAG             "[nvm_api]"
 #include "log.h"
 
-NEW_VM_OBJ g_nvm_obj;
+#define NVM_DEBUG_IO_ENABLE    0 //io 测量耗时
 
-u32 new_vm_buff[NVM_BUFF_SIZE / 4]; //需要32bit对齐
+#define NVM_INIT_DB_IO         IO_PORTA_00
+#define NVM_READ_DB_IO         IO_PORTA_01
+#define NVM_WRITE_DB_IO        IO_PORTA_02
+#define NVM_PRE_ERASE_DB_IO    IO_PORTA_00
+
+#if NVM_DEBUG_IO_ENABLE
+#define NVM_DEBUG_IO_ON(a)    gpio_write(a, 1)
+#define NVM_DEBUG_IO_OFF(a)   gpio_write(a, 0)
+#define NVM_DEBUG_IO_INIT(a)  gpio_set_mode(IO_PORT_SPILT(a), PORT_OUTPUT_LOW)
+#else
+#define NVM_DEBUG_IO_ON(a)
+#define NVM_DEBUG_IO_OFF(a)
+#define NVM_DEBUG_IO_INIT(a)
+#endif
+
+static NEW_VM_OBJ g_nvm_obj;
+
+//merge才需要buff,用NK ram
+NOT_KEEP_RAM
+static u32 new_vm_buff[NVM_BUFF_SIZE / 4]; //需要32bit对齐
 /******************************************************/
 void *nvm_buf_for_lib(NEW_VM_OBJ *p_nvm, u32 *p_len)
 {
@@ -24,9 +42,15 @@ void *nvm_buf_for_lib(NEW_VM_OBJ *p_nvm, u32 *p_len)
 }
 
 /******************************************************/
-
+//配置记录缓存，缓存越大读访问效率会高，但会消耗ram
 #define NVM_CACHE_ENABLE    1
 #define NVM_CACHE_NUMBER    6
+
+/*
+   vm api接口操作是否上锁(关中断),避免重入情况,
+   若关闭用户可自己控制是否写入时机，通过api查询 nvm_op_is_busy_api 操作状态
+*/
+#define NVM_OP_LOCK_ENABLE  1
 
 /******************************************************
  * 变量：config_vm_multiple_read_en
@@ -46,10 +70,38 @@ const bool config_vm_multiple_read_en = 0;
  * */
 const bool config_vm_erasure_after_format_en = 1;
 
+/******************************************************/
+static u8 nvm_lock_cnt;
+
+static void nvm_lock(void)
+{
+    nvm_lock_cnt++;
+
+#if NVM_OP_LOCK_ENABLE
+    local_irq_disable();
+#endif
+}
+
+static void nvm_unlock(void)
+{
+#if NVM_OP_LOCK_ENABLE
+    local_irq_enable();
+#endif
+
+    nvm_lock_cnt--;
+}
+
+//是否执行操作中
+bool nvm_op_is_busy_api(void)
+{
+    return nvm_lock_cnt ? true : false;
+}
+
+
 #if NVM_CACHE_ENABLE
 
-NVM_ENTRY g_nvm_entry[NVM_CACHE_NUMBER];
-NVM_CACHE g_nvm_cache;
+static NVM_ENTRY g_nvm_entry[NVM_CACHE_NUMBER];
+static NVM_CACHE g_nvm_cache;
 
 NVM_CACHE *nvm_cache_init_api(void)
 {
@@ -61,16 +113,26 @@ NVM_CACHE *nvm_cache_init_api(void)
 }
 
 #endif
-/******************************************************/
 
 
 u32 nvm_init_api(u32 addr, u32 size)
 {
+
+#if NVM_DEBUG_IO_ENABLE
+    NVM_DEBUG_IO_INIT(NVM_INIT_DB_IO);
+    NVM_DEBUG_IO_INIT(NVM_READ_DB_IO);
+    NVM_DEBUG_IO_INIT(NVM_WRITE_DB_IO);
+    NVM_DEBUG_IO_INIT(NVM_PRE_ERASE_DB_IO);
+#endif
+
+    NVM_DEBUG_IO_ON(NVM_INIT_DB_IO);
+
     memset(&g_nvm_obj, 0, sizeof(NEW_VM_OBJ));
 
     /* if (NULL == g_nvm_obj.device) { */
     g_nvm_obj.device = dev_open(__SFC_NANE, 0);
     if (NULL == g_nvm_obj.device) {
+        NVM_DEBUG_IO_OFF(NVM_INIT_DB_IO);
         log_error("nvm init E_NVM_OPEN_DEVICE\n");
         return E_NVM_OPEN_DEVICE;
     }
@@ -78,12 +140,20 @@ u32 nvm_init_api(u32 addr, u32 size)
 #if NVM_CACHE_ENABLE
     g_nvm_obj.cache = nvm_cache_init_api();
 #endif
-    return nvm_init(&g_nvm_obj, addr, size);
+    u32 tmp = nvm_init(&g_nvm_obj, addr, size);
+
+    NVM_DEBUG_IO_OFF(NVM_INIT_DB_IO);
+    return tmp;
 }
 
 u32 nvm_read_api(u32 id, u8 *buf, u32 len)
 {
+    nvm_lock();
+    NVM_DEBUG_IO_ON(NVM_READ_DB_IO);
     u32 err = nvm_read(&g_nvm_obj, id, buf, len);
+    NVM_DEBUG_IO_OFF(NVM_READ_DB_IO);
+    nvm_unlock();
+
     if (err) {
         return err;
     } else {
@@ -93,7 +163,12 @@ u32 nvm_read_api(u32 id, u8 *buf, u32 len)
 
 u32 nvm_write_api(u32 id, u8 *buf, u32 len)
 {
+    nvm_lock();
+    NVM_DEBUG_IO_ON(NVM_WRITE_DB_IO);
     u32 err = nvm_write(&g_nvm_obj, id, buf, len);
+    NVM_DEBUG_IO_OFF(NVM_WRITE_DB_IO);
+    nvm_unlock();
+
     if (err) {
         return err;
     } else {
@@ -107,22 +182,35 @@ u32 nvm_write_api(u32 id, u8 *buf, u32 len)
  * */
 void nvm_erasure_next_api(void)
 {
+    nvm_lock();
+    NVM_DEBUG_IO_ON(NVM_PRE_ERASE_DB_IO);
     nvm_pre_erasure_next(&g_nvm_obj, 1, 1);
+    NVM_DEBUG_IO_OFF(NVM_PRE_ERASE_DB_IO);
+    nvm_unlock();
 }
 
 u32 nvm_get_half_addr_api()
 {
-    return nvm_get_half_addr(&g_nvm_obj);
+    nvm_lock();
+    u32 tmp = nvm_get_half_addr(&g_nvm_obj);
+    nvm_unlock();
+    return tmp;
 }
 
 u32 nvm_get_half_len_api()
 {
-    return nvm_get_half_len(&g_nvm_obj);
+    nvm_lock();
+    u32 tmp = nvm_get_half_len(&g_nvm_obj);
+    nvm_unlock();
+    return tmp;
 }
 
 u32 nvm_get_cur_date_len_api()
 {
-    return nvm_get_cur_date_len(&g_nvm_obj);
+    nvm_lock();
+    u32 tmp = nvm_get_cur_date_len(&g_nvm_obj);
+    nvm_unlock();
+    return tmp;
 }
 
 
@@ -365,7 +453,7 @@ void nvm_cache_demo_0(void)
 
 }
 
-void nvm_cache_demo(void)
+void nvm_cache_demo(void)
 {
     memset(&g_nvm_entry[0], 0, sizeof(g_nvm_entry));
     memset(&g_nvm_cache, 0, sizeof(g_nvm_cache));

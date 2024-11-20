@@ -31,6 +31,9 @@
 #include "gpio.h"
 #include "user_cfg.h"
 #include "my_malloc.h"
+#if TCFG_NORMAL_SET_DUT_MODE_API
+#include "ble_test_api.h"
+#endif
 #if RCSP_BTMATE_EN
 #include "rcsp_bluetooth.h"
 #endif
@@ -636,6 +639,12 @@ static void hidkey_key_event_handler(struct sys_event *event)
         event_type = event->u.key.event;
         key_value = event->u.key.value;
         log_info("app_key_event: %d,%d\n", event_type, key_value);
+// dut api test
+#if TCFG_NORMAL_SET_DUT_MODE_API
+        ble_dut_mode_key_handle(event_type, key_value);
+        return;
+#endif
+
         hidkey_app_key_deal_test(event_type, key_value);
     }
 }

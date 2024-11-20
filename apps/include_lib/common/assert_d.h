@@ -4,6 +4,7 @@
 
 extern const int config_asser;
 extern void __local_irq_disable();
+extern const unsigned char config_exception_record_info;
 
 /* cpu_assert_debug(); \ */
 /* system_reset(ASSERT_FLAG); \ */
@@ -34,6 +35,10 @@ extern void __local_irq_disable();
             } \
         }else {\
             if(!(a)){ \
+                if (config_exception_record_info) { \
+                    local_irq_disable();\
+                    while(1); \
+                }\
                 chip_reset();\
             }\
         }\

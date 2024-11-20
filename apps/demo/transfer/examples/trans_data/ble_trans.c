@@ -516,6 +516,11 @@ static int trans_att_write_callback(hci_con_handle_t connection_handle, uint16_t
 #endif
         rcsp_init();
         rcsp_dev_select(RCSP_BLE);
+        // fix:ios rcsp bt status callback not be called
+        if (ble_comm_dev_get_handle_state(connection_handle, GATT_ROLE_SERVER) == BLE_ST_NOTIFY_IDICATE) {
+            ble_gatt_server_update_ble_state_callback(connection_handle, BLE_ST_NOTIFY_IDICATE);
+        }
+
 #endif
         /* trans_send_connetion_updata_deal(connection_handle); */
         log_info("------write ccc:%04x,%02x\n", handle, buffer[0]);
@@ -721,13 +726,13 @@ void bt_ble_before_start_init(void)
  *  \note
  */
 /*************************************************************************************************/
-static void trans_test_send_data(void)
+static void trans_test_send_data(void *priv)
 {
 #if TEST_TRANS_CHANNEL_DATA
     static uint32_t count = 0;
     static uint32_t send_index;
 
-    int i, ret = 0;
+    int ret = 0;
     int send_len = TEST_PAYLOAD_LEN;
     uint32_t time_index_max = 1000 / TEST_TRANS_TIMER_MS;
 
@@ -741,7 +746,7 @@ static void trans_test_send_data(void)
     do {
         if (ble_comm_att_check_send(trans_con_handle, send_len) && ble_gatt_server_characteristic_ccc_get(trans_con_handle, TEST_TRANS_NOTIFY_HANDLE + 1)) {
             count++;
-            ret = ble_comm_att_send_data(trans_con_handle, TEST_TRANS_NOTIFY_HANDLE, &count, send_len, ATT_OP_AUTO_READ_CCC);
+            ret = ble_comm_att_send_data(trans_con_handle, TEST_TRANS_NOTIFY_HANDLE, (void *)&count, send_len, ATT_OP_AUTO_READ_CCC);
             if (!ret) {
                 /* putchar('T'); */
                 trans_send_test_count += send_len;
@@ -833,7 +838,7 @@ void bt_ble_init(void)
     ble_module_enable(1);
 
 #if TEST_TRANS_CHANNEL_DATA
-    sys_timer_add(0, trans_test_send_data, TEST_TRANS_TIMER_MS);
+    sys_timer_add(0, (void *)trans_test_send_data, TEST_TRANS_TIMER_MS);
 #endif
 }
 

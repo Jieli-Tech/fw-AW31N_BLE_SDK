@@ -17,12 +17,12 @@ typedef enum {
     VM_BLE_LOCAL_INFO           = 2,
     CFG_BT_FRE_OFFSET           = 3,
     VM_PMU_VOLTAGE              = 4,
-    VM_VIR_RTC_TIME             = 5,
-    VM_VIR_RTC_ALM              = 6,
-    VM_VIR_RTC_CNT              = 7,
-
 
     VM_OSC_1PIN_LRC             = 5,//单脚osc牵引
+
+    VM_VIR_RTC_TIME             = 6,
+    VM_VIR_RTC_ALM              = 7,
+    VM_VIR_RTC_CNT              = 8,
     //=================================================================================//
     //                             只存VM配置项[50 ~ 99]                         	   //
     //=================================================================================//

@@ -178,6 +178,7 @@ extern const int config_btctler_le_acl_packet_length;
 extern const int config_btctler_le_acl_total_nums;
 extern const int config_btctler_le_slave_conn_update_winden;
 extern const int config_btctler_le_clock_accuracy;
+extern const int config_btctler_le_conn_update_param_check;
 /*-----------------------------------------------------------*/
 
 /*

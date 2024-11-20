@@ -1,4 +1,6 @@
         btctler_code_start = .;
+        . = ALIGN(4);
+        
         BTCTLER_CONTROLLER_CODE_START = .;
 		KEEP(*(.bt_rf_text_const))
 		KEEP(*(.bt_rf_text))

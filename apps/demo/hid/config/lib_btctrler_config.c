@@ -163,19 +163,18 @@ const int config_btctler_le_master_multilink = 0;
 
 #if CONFIG_BLE_HIGH_SPEED
 const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG | LE_DATA_PACKET_LENGTH_EXTENSION | LE_2M_PHY;
-const int config_btctler_le_acl_packet_length = 48;
+const int config_btctler_le_acl_total_nums = (CONFIG_BT_GATT_CONNECTION_NUM * 3) + 4;
 #else
 const uint64_t config_btctler_le_features = SET_ENCRYPTION_CFG | SET_SELECT_PHY_CFG;
-/* const uint64_t config_btctler_le_features = SET_SELECT_PHY_CFG; */
-const int config_btctler_le_acl_packet_length = 27;
+const int config_btctler_le_acl_total_nums = (CONFIG_BT_GATT_CONNECTION_NUM * 3) + 1;
 #endif
 
+const int config_btctler_le_acl_packet_length = PACKET_DATE_LEN;
 const int config_btctler_master_number = CONFIG_BT_GATT_CLIENT_NUM;
 const int config_btctler_server_number = CONFIG_BT_GATT_SERVER_NUM;
 const int config_btctler_le_roles    = SET_SLAVE_ROLS_CFG | SET_MASTER_ROLS_CFG;
 const int config_btctler_le_hw_nums = CONFIG_BT_GATT_CONNECTION_NUM;
 const int config_btctler_le_rx_nums = (CONFIG_BT_GATT_CONNECTION_NUM * 3) + 2;
-const int config_btctler_le_acl_total_nums = (CONFIG_BT_GATT_CONNECTION_NUM * 3) + 1;
 
 #else
 //no support ble
@@ -194,6 +193,7 @@ const int config_btctler_server_number = 0;
 const int config_btctler_le_slave_conn_update_winden = 500;//range:100 to 2500
 const int config_btctler_le_clock_accuracy = 500;
 const u32 config_low_power_timeout_reserved = 1025;//低功耗蓝牙预留时间
+const int config_btctler_le_conn_update_param_check = 1;//是否校验连接参数并发起reject
 /*-----------------------------------------------------------*/
 // LE vendor baseband set
 /* const u32 config_vendor_le_bb = VENDOR_BB_MD_CLOSE | VENDOR_BB_CONNECT_SLOT; */

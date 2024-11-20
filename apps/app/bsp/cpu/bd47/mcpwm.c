@@ -311,6 +311,7 @@ void mcpwm_set_frequency(int mcpwm_cfg_id, mcpwm_aligned_mode_type align, u32 fr
             break;
         }
     }
+    tmr_con &= ~(0xF << MCPWM_TMR_CKPS); //div 2^i
     tmr_con |= (i << MCPWM_TMR_CKPS); //div 2^i
     mcpwm_div_clk = clk / (1 << i);
     if (frequency == 0) {

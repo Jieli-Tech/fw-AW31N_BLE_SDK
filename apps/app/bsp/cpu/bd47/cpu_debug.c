@@ -7,6 +7,7 @@
 #include "cpu_debug.h"
 #include "my_malloc.h"
 #include "clock.h"
+#include "printf.h"
 
 #ifdef CONFIG_SDK_DEBUG_LOG
 
@@ -84,7 +85,7 @@ void sdk_cpu_debug_check_sdk_info_logout(void)
     log_info("nv_remain= 0x%04x; bt_nv_malloc: size= 0x%04x ,free= 0x%04x", NV_RAM_REMAIN_SIZE, NV_RAM_MALLOC_SIZE, __bt_get_free_size());
 #endif
 
-    log_info("my_malloc(nv_ram): size= 0x%04x ,free= 0x%04x", SYS_HEAP_MALLOC_SIZE, my_get_free_size());
+    log_info("my_malloc(heap): size= 0x%04x ,free= 0x%04x", SYS_HEAP_MALLOC_SIZE, my_get_free_size());
 
     log_info("cur_is_irq?%d", cpu_run_is_irq_mode());
 }
@@ -133,6 +134,22 @@ void sdk_cpu_debug_loop_call(void)
     if (CPU_DB_EVENT_CHECK(DB_EVENT_TEST_FREQ_TABLE)) {
         CPU_DB_EVENT_CLR(DB_EVENT_TEST_FREQ_TABLE);
         sdk_cpu_debug_test_freq();
+    }
+}
+
+//============================
+//配置 config_exception_record_info =1,重写下面的函数获取异常信息，用户自定义存在vm或flash区域记录
+void debug_record_user_deal(char *record_buf, u32 record_buf_len, u32 *usp, u32 *ssp, u32 *sp)
+{
+    if (config_exception_record_info) {
+        //格式如下:
+        printf(">>>>>>debug_hook(%u):\n%s\n", strlen(record_buf), record_buf);
+        printf("usp : \r\n");
+        put_buf((u8 *)usp, 512);
+        printf("ssp : \r\n");
+        put_buf((u8 *)ssp, 512);
+        printf(" sp : \r\n");
+        put_buf((u8 *)sp, 512);
     }
 }
 

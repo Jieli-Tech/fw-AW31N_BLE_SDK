@@ -2,7 +2,7 @@
 #define HID_APP_CONFIG_H
 
 #include "le_common.h"
-
+#include "board_config.h"
 
 #ifdef CONFIG_RELEASE_ENABLE
 #define LIB_DEBUG    0
@@ -63,11 +63,18 @@
 //蓝牙BLE配置
 #define DOUBLE_BT_SAME_NAME                0 //同名字
 #define CONFIG_BT_GATT_COMMON_ENABLE       1 //配置使用gatt公共模块
+#if CONFIG_APP_MOUSE_DUAL && LOW_CONNECT_INTERVAL_TEST
+#define CONFIG_BT_SM_SUPPORT_ENABLE        0 //配置是否支持加密
+#else
 #define CONFIG_BT_SM_SUPPORT_ENABLE        1 //配置是否支持加密
+#endif
 #define CONFIG_BT_GATT_CLIENT_NUM          0 //配置主机client个数(app not support)
 #define CONFIG_BT_GATT_SERVER_NUM          1 //配置从机server个数
 #define CONFIG_BT_GATT_CONNECTION_NUM      (CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_GATT_CLIENT_NUM) //配置连接个数
 #define CONFIG_BLE_HIGH_SPEED              0 //BLE提速模式: 使能DLE+2M, payload要匹配pdu的包长--TODO
+#if (CONFIG_BLE_HIGH_SPEED && TCFG_LOWPOWER_LOWPOWER_SEL)
+#error "Please close low power if enable high speed"
+#endif
 /*
 1、根据连接周期去限制包长,包长计算:TODO
 2、more data打开会占用下个周期
@@ -91,15 +98,22 @@
 
 #if CONFIG_BLE_HIGH_SPEED
 #define CONFIG_BLE_PHY_SET                CONFIG_SET_2M_PHY //SET 2M_PHY for protect
+#define PACKET_DATE_LEN                   251
+//Change ram
+#define BT_NK_RAM_SIZE_ALL                (BT_NK_RAM_SIZE + 0x600)
+#define BT_NV_RAM_SIZE_ALL                (BT_NV_RAM_SIZE + (PACKET_DATE_LEN) * (CONFIG_BT_GATT_CONNECTION_NUM * 3 + 1) + 0x700)
 #else
 #define CONFIG_BLE_PHY_SET                CONFIG_SET_1M_PHY //default
+#define PACKET_DATE_LEN                   27                //default
+#define BT_NK_RAM_SIZE_ALL                BT_NK_RAM_SIZE
+#define BT_NV_RAM_SIZE_ALL                BT_NV_RAM_SIZE
 #endif
+
 
 #define MY_MALLOC_SELECT                    1 //1--使用heap_buf malloc, 0--使用nv_ram_malloc
 
 // #include "usb_common_def.h"
 
-#include "board_config.h"
 
 #include "btcontroller_mode.h"
 
@@ -121,18 +135,22 @@
 
 #if (CONFIG_BT_MODE == BT_NORMAL)
 //enable dut mode,need disable sleep(TCFG_LOWPOWER_LOWPOWER_SEL = 0)
-#define TCFG_NORMAL_SET_DUT_MODE                 0
-#if TCFG_NORMAL_SET_DUT_MODE
+// DUT模式选择,二选一有且仅选一种
+#define TCFG_NORMAL_SET_DUT_MODE                  0 // DUT测试模式,默认上电进初始化
+#define TCFG_NORMAL_SET_DUT_MODE_API              0 // DUT api 模式,需要自行调用api测试,见ble_test_api.c
+#if TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API
 #undef  TCFG_LOWPOWER_LOWPOWER_SEL
 #define TCFG_LOWPOWER_LOWPOWER_SEL               0
 
+
+#if TCFG_NORMAL_SET_DUT_MODE
 //close key
 #undef KEY_AD_EN
 #define KEY_AD_EN                                0
 
 #undef KEY_IO_EN
 #define KEY_IO_EN                                0
-
+#endif
 #undef  TCFG_SYS_LVD_EN
 #define TCFG_SYS_LVD_EN					         0
 
@@ -151,6 +169,7 @@
 #else
 
 #define TCFG_NORMAL_SET_DUT_MODE                  0
+#define TCFG_NORMAL_SET_DUT_MODE_API              0
 
 //close key
 #undef KEY_AD_EN
@@ -210,10 +229,6 @@
 #undef TCFG_HID_AUTO_SHUTDOWN_TIME
 #define TCFG_HID_AUTO_SHUTDOWN_TIME             0
 
-#endif
-
-#if TCFG_CLOCK_SYS_HZ == 160000000 && TCFG_CLOCK_SYS_PLL_HZ != 240000000
-#error "SYS_HZ and SYS_PLL_ZH NO MATCH"
 #endif
 
 /*

@@ -542,7 +542,6 @@ static void mouse_bt_start()
     btstack_ble_start_before_init(&mouse_ble_config, 0);
     le_hogp_set_reconnect_adv_cfg(ADV_IND, 5000);
 
-    cfg_file_parse(0);
     btstack_init();
 }
 
@@ -732,7 +731,11 @@ static void mouse_btmode_init()
         }
         btstack_ble_start_after_init(0);
     }
+#if LOW_CONNECT_INTERVAL_TEST
+    mouse_select_btmode(HID_MODE_24G);
+#else
     mouse_select_btmode(HID_MODE_INIT);
+#endif
 }
 
 /*************************************************************************************************/
@@ -766,6 +769,7 @@ static void mouse_bt_connction_status_event_handler(struct bt_event *bt)
         } else {
             // 设置高回报率模式
             ble_op_conn_us_unit(1);
+            ble_op_conn_init_2Mphy(1);
             // 关闭more data
             set_config_vendor_le_bb(VENDOR_BB_MD_CLOSE);
         }
@@ -827,6 +831,9 @@ static void mouse_hogp_ble_status_callback(ble_state_e status, uint32_t value)
     log_info("mouse_hogp_ble_status_callback============== %02x   value:0x%x\n", status, value);
     switch (status) {
     case BLE_ST_CONNECT:
+#if LOW_CONNECT_INTERVAL_TEST
+        mouse_set_is_paired(1);
+#endif
         log_info("BLE_ST_CONNECT\n");
         break;
 

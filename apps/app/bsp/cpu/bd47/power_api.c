@@ -63,6 +63,9 @@ void sys_power_down(u32 usec)
     //    putchar('{');
     u32 sys_timer;
 
+    //step:3睡眠前做预擦除动作
+    sysmem_pre_erase_api();
+
     //check overlay
     sleep_overlay_check_reload();
 
@@ -75,8 +78,6 @@ void sys_power_down(u32 usec)
         usec = MIN(sys_timer, usec);
     }
 
-    //step:3睡眠前做预擦除动作
-    /* sysmem_pre_erase_api(); */
     //step:4进入睡眠
     vPortSuppressTicksAndSleep(usec);
 
@@ -90,5 +91,17 @@ void sys_power_down(u32 usec)
 //    putchar('}');
 #endif
 }
+
+static u8 sleep_check_idle_query(void)
+{
+    return sleep_check_enable;
+}
+
+REGISTER_LP_TARGET(sleep_check_en_target) = {
+    .name = "sleep_check_en",
+    .is_idle = sleep_check_idle_query,
+};
+
+
 
 

@@ -5,6 +5,7 @@
 
 extern void sys_power_down(u32 usec);
 extern void wdt_clear(void);
+extern void IcuFlushinvAll(void);
 int app_comm_process_handler(int *msg);
 
 #endif    //

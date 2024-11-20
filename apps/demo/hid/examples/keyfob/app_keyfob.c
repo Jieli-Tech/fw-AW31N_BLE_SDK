@@ -176,7 +176,9 @@ static void keyfob_key_deal_test(uint8_t key_type, uint8_t key_value)
     switch (key_type) {
     case KEY_EVENT_CLICK:
         keyfob_send_value(key_value, KEYFOB_CLICK);
+#if TCFG_LED_ENABLE
         led_operate(LED_KEY_UP);
+#endif
         break;
 
     case KEY_EVENT_LONG:
@@ -188,7 +190,10 @@ static void keyfob_key_deal_test(uint8_t key_type, uint8_t key_value)
             //启动连拍
             keyfob_send_value(key_value, KEYFOB_CLICK_HOLD);
         }
+
+#if TCFG_LED_ENABLE
         led_operate(LED_KEY_HOLD);
+#endif
         break;
 
     case KEY_EVENT_UP:
@@ -196,7 +201,10 @@ static void keyfob_key_deal_test(uint8_t key_type, uint8_t key_value)
             //停止连拍
             keyfob_send_value(key_value, KEYFOB_CLICK_UP);
         }
+
+#if TCFG_LED_ENABLE
         led_operate(LED_KEY_UP);
+#endif
         break;
 
     default:
@@ -257,7 +265,6 @@ static void keyfob_app_bt_start()
     btstack_ble_start_before_init(&keyfob_ble_config, 0);
     le_hogp_set_reconnect_adv_cfg(ADV_DIRECT_IND_LOW, 5000);
     le_hogp_set_output_callback(keyfob_recv_callback);
-    cfg_file_parse(0);
     btstack_init();
 }
 
@@ -522,7 +529,7 @@ static void app_keyfob_event_handler(struct sys_event *event)
 
         event_type = event->u.key.event;
         key_value = event->u.key.value;
-        log_info("app_key_evnet: %d,%d\n", event_type, key_value);
+        log_info("app_key_event: %d,%d\n", event_type, key_value);
         if (event_type == KEY_EVENT_DOUBLE_CLICK && key_value == TCFG_ADKEY_VALUE1) {
             if (ble_hid_is_connected()) {
                 le_hogp_disconnect();

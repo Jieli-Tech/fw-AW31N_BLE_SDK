@@ -370,5 +370,5 @@ void set_bt_full_name_event(u8 en);
 /* coexist between bt chips */
 void bt_wl_coex_init(uint8_t state);
 void bt_wl_coex_enable(bool enable);
-
+u16 ll_vendor_get_link_handle(void *priv);
 #endif

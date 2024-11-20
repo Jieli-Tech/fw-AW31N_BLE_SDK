@@ -45,7 +45,8 @@ void board_power_init()
 {
     GPIO_CONFIG_INIT();
 
-    printf("power_supply: %s", power_support_type[TCFG_POWER_SUPPLY_MODE]);
+    printf("power_supply:%s, lowper_mode:%d", power_support_type[TCFG_POWER_SUPPLY_MODE], TCFG_LOWPOWER_LOWPOWER_SEL);
+
     power_control(PCONTROL_POWER_SUPPLY, TCFG_POWER_SUPPLY_MODE);
     power_control(PCONTROL_PD_VDDIO_KEEP, VDDIO_KEEP_TYPE_NORMAL);
     power_control(PCONTROL_SF_VDDIO_KEEP, VDDIO_KEEP_TYPE_NORMAL);

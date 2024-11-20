@@ -52,7 +52,7 @@
 //连接latency
 #define SET_CONN_LATENCY    0  //(unit:conn_interval)
 //连接超时
-#define SET_CONN_TIMEOUT    100 //(unit:10ms)
+#define SET_CONN_TIMEOUT    400 //(unit:10ms)
 
 //建立连接超时
 #define SET_CREAT_CONN_TIMEOUT    0 //(unit:ms)

@@ -313,7 +313,6 @@ static void hidrc_app_bt_start()
     le_hogp_set_reconnect_adv_cfg(ADV_DIRECT_IND_LOW, 5000);
     le_hogp_set_output_callback(hidrc_recv_callback);
 
-    cfg_file_parse(0);
     btstack_init();
 }
 

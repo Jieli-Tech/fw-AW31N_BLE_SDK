@@ -41,8 +41,8 @@ static int _sstack_space[SYS_STACK_SIZE_ALL / 4] sec_used(.sstack);
 static int _ustack_space[USR_STACK_SIZE_ALL / 4] sec_used(.ustack);
 
 static int _sys_heap_space[SYS_HEAP_SIZE / 4] sec_used(.sec_sys_heap);//最少占用
-static int _bt_nk_ram_min[BT_NK_RAM_SIZE / 4] sec_used(.sec_bt_nk_ram);//最少占用
-static int _bt_nv_ram_min[BT_NV_RAM_SIZE / 4] sec_used(.sec_bt_nv_ram);//最少占用
+static int _bt_nk_ram_min[BT_NK_RAM_SIZE_ALL / 4] sec_used(.sec_bt_nk_ram);//最少占用
+static int _bt_nv_ram_min[BT_NV_RAM_SIZE_ALL / 4] sec_used(.sec_bt_nv_ram);//最少占用
 
 //*********************************************************************************//
 static struct application *main_application_operation_state(struct application *app, enum app_state state);

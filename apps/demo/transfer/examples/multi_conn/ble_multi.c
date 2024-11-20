@@ -170,17 +170,26 @@ void bt_ble_init(void)
 #endif
 
 #if CONFIG_BT_GATT_CLIENT_NUM
-    // 默认scan不开低功耗
-    /* multi_state_idle_set_active(1); */
     multi_client_init();
-
 #if CFG_USE_24G_CODE_ID_SCAN
     rf_set_scan_24g_hackable_coded(CFG_RF_24G_CODE_ID_SCAN);//设置为2.4g模式
     log_info("======master 24g mode\n");
 #endif
-
 #endif
+
     ble_module_enable(1);
+
+#if CONFIG_BT_NOCONN_ADV_NUM
+    multi_adv_init();
+    multi_adv_enable(1);
+#endif
+
+#if CONFIG_BT_NOCONN_SCAN_NUM
+    multi_scan_init();
+    ble_comm_dev_scan_handler_register(multi_scan_report_handle);
+    multi_scan_enable(1);
+#endif
+
 }
 
 

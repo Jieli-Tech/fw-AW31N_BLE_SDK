@@ -23,15 +23,11 @@
 #include "app_power_mg.h"
 #include "app_comm_bt.h"
 #include "sys_timer.h"
-#include "gpio.h"
 #include "my_malloc.h"
 #include "app_modules.h"
 #include "led_control.h"
 #include "app_comm_proc.h"
 #include "le_gatt_common.h"
-#if RCSP_BTMATE_EN
-#include "rcsp_bluetooth.h"
-#endif
 
 #if CONFIG_APP_MULTI && CONFIG_BT_GATT_CLIENT_NUM
 
@@ -46,8 +42,14 @@
 #define SET_SCAN_WINDOW                       ADV_SCAN_MS(8)  // unit: 0.625ms, <= SET_SCAN_INTERVAL
 
 //连接周期
-#define BASE_INTERVAL_MIN                     (6)//最小的interval
-#define SET_CONN_INTERVAL                     (BASE_INTERVAL_MIN*4) //(unit:1.25ms)
+#if CONFIG_BLE_CONNECT_SLOT
+#define BASE_INTERVAL_MIN   (1000) // 最小的interval
+#define SET_CONN_INTERVAL   (BASE_INTERVAL_MIN) //(unit:us)
+#else
+#define BASE_INTERVAL_MIN   (6)//最小的interval
+#define SET_CONN_INTERVAL   (BASE_INTERVAL_MIN*4) //(unit:1.25ms)
+#endif
+
 //连接latency
 #define SET_CONN_LATENCY                      0  //(unit:conn_interval)
 //连接超时
@@ -657,6 +659,11 @@ void multi_client_init(void)
 
 #if BLE_SLAVE_CLIENT_LED_OP_EN
     led_operate(LED_INIT);
+#endif
+
+#if CONFIG_BLE_CONNECT_SLOT
+    // 设置高回报率模式
+    ble_op_conn_us_unit(1);
 #endif
 
 #if CLIENT_PAIR_BOND_ENABLE

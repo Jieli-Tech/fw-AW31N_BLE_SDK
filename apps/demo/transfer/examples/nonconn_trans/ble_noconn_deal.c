@@ -29,11 +29,6 @@
 #include "app_comm_proc.h"
 #include "ble_noconn_deal.h"
 #include "user_cfg.h"
-#if RCSP_BTMATE_EN
-#include "rcsp_bluetooth.h"
-#endif
-
-// todo change func name
 
 #if CONFIG_APP_NONCONN_24G
 #define LOG_TAG         "[ble_noconn]"

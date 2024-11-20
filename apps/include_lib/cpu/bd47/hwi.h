@@ -44,6 +44,8 @@ void irq_list_enable(u32 b_index_l, u32 b_index_h);
 void request_irq(u8 index, u8 priority, void (*handler)(void), u8 chip_id);
 void unrequest_irq(u8 index);
 void request_irq(u8 index, u8 priority, void (*handler)(void), u8 cpu_id);
+void irq_unmask_set(u8 index);
+void irq_unmask_disable(u8 index);
 void delay_nops(u32 nops);
 u16 sys_timeout_add(void *priv, void (*func)(void *priv), u32 msec);
 void sys_timeout_del(u16 t);

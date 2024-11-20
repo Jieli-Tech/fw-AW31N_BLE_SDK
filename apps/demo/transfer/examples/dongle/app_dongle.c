@@ -73,7 +73,6 @@ static void dongle_bt_start()
 #if CFG_RF_24G_CODE_ID
     rf_set_24g_hackable_coded(CFG_RF_24G_CODE_ID);
 #endif
-    cfg_file_parse(0);
     btstack_init();
 }
 
@@ -234,7 +233,7 @@ static void dongle_key_event_handler(struct sys_event *event)
     if (event->arg == (void *)DEVICE_EVENT_FROM_KEY) {
         event_type = event->u.key.event;
         key_value = event->u.key.value;
-        log_info("app_key_evnet: %d,%d\n", event_type, key_value);
+        log_info("app_key_event: %d,%d\n", event_type, key_value);
 
         if (event_type == KEY_EVENT_TRIPLE_CLICK
             && (key_value == TCFG_ADKEY_VALUE3 || key_value == TCFG_ADKEY_VALUE0)) {

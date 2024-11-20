@@ -44,6 +44,7 @@
 #define	ATTR_TYPE_DEV_AUTHKEY		11
 #define	ATTR_TYPE_DEV_PROCODE		12
 #define	ATTR_TYPE_DEV_MAX_MTU		13
+#define	ATTR_TYPE_DEV_BLE_ADDR		17
 #define	ATTR_TYPE_MD5_GAME_SUPPORT	19
 
 #define RCSP_USE_BLE      0
@@ -291,6 +292,18 @@ static u32 JL_opcode_get_target_info(void *priv, u8 OpCode, u8 OpCode_SN, u8 *da
         t_buf[2] = (rx_max_mtu >> 8) & 0xFF;
         t_buf[3] = rx_max_mtu & 0xFF;
         offset += add_one_attr(buf, RCSP_TMP_BUF_LEN, offset,  ATTR_TYPE_DEV_MAX_MTU, t_buf, 4);
+    }
+
+    if (mask & BIT(ATTR_TYPE_DEV_BLE_ADDR)) {
+        extern int le_controller_get_mac(void *addr);
+        u8 taddr_buf[7] = {0};
+        le_controller_get_mac(taddr_buf + 1);
+        for (u8 i = 0; i < (6 / 2); i++) {
+            taddr_buf[i + 1] ^= taddr_buf[7 - i - 1];
+            taddr_buf[7 - i - 1] ^= taddr_buf[i + 1];
+            taddr_buf[i + 1] ^= taddr_buf[7 - i - 1];
+        }
+        offset += add_one_attr(buf, RCSP_TMP_BUF_LEN, offset,  ATTR_TYPE_DEV_BLE_ADDR, taddr_buf, sizeof(taddr_buf));
     }
 
     if (mask & BIT(ATTR_TYPE_MD5_GAME_SUPPORT)) {

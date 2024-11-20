@@ -4,6 +4,7 @@
 #include "gpio.h"
 #include "app_config.h"
 #include "start/init.h"
+#include "sys_memory.h"
 
 //-------------------------------------------------------------------
 /*config
@@ -85,6 +86,8 @@ u8 power_soff_callback()
 int power_set_soft_poweroff_hook(void)
 {
 #if defined(CONFIG_CPU_BD47)
+    //睡眠前做预擦除动作
+    sysmem_pre_erase_api();
     //check overlay
     sleep_overlay_check_reload();
 #endif

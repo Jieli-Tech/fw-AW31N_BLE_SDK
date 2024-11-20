@@ -28,4 +28,11 @@ int multi_server_clear_pair(void);
 void multi_state_idle_set_active(uint8_t active);
 void multi_client_key_test(uint8_t key_type, uint8_t key_value);
 void multi_server_key_test(uint8_t key_type, uint8_t key_value);
+
+// adv&scan
+void multi_adv_init(void);
+void multi_adv_enable(u8 enable);
+void multi_scan_init(void);
+void multi_scan_enable(u8 enable);
+void multi_scan_report_handle(adv_report_t *report_pt, uint16_t len);
 #endif

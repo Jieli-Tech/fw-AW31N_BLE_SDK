@@ -990,6 +990,10 @@ static int hogp_att_write_callback(hci_con_handle_t connection_handle, uint16_t 
 #endif
         rcsp_init();
         rcsp_dev_select(RCSP_BLE);
+        // fix:ios device rcsp bt status callback not be called
+        if (ble_comm_dev_get_handle_state(connection_handle, GATT_ROLE_SERVER) == BLE_ST_NOTIFY_IDICATE) {
+            ble_gatt_server_update_ble_state_callback(connection_handle, BLE_ST_NOTIFY_IDICATE);
+        }
 
 #if (TCFG_HID_AUTO_SHUTDOWN_TIME)
         __ble_bt_evnet_post(SYS_BT_EVENT_FORM_COMMON, COMMON_EVENT_SHUTDOWN_DISABLE, NULL, 0);

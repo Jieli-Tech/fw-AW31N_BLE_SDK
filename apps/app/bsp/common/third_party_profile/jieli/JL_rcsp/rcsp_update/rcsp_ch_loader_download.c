@@ -6,7 +6,7 @@
 #include "tick_timer_driver.h"
 #include "third_party/rcsp/JL_rcsp_protocol.h"
 #include "app_modules.h"
-#include "asm/power/power_reset.h"
+#include "asm/power_interface.h"
 
 #define LOG_TAG_CONST       UPDATE
 //#define LOG_TAG_CONST       NORM

@@ -111,4 +111,6 @@ enum {
 #define __BANK_RF_ENTRY
 
 
+extern const u8 config_system_info;
+
 #endif

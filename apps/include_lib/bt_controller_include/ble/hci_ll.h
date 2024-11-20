@@ -522,6 +522,7 @@ int ll_vendor_open_latency(u16 conn_handle);
 int ll_vendor_close_latency(u16 conn_handle);
 
 int ll_vendor_conn_unit_is_us(const bool is_us);
+int ll_vendor_get_conn_unit_is_us(void);
 int ll_vendor_conn_init_is_2Mphy(const bool is_2Mphy);
 
 int ll_hci_encryption(u8 *key, u8 *plaintext_data);
@@ -602,6 +603,7 @@ void ll_set_vendor_param(uint8_t *vendor_param, size_t size);
 void ll_cig_tx_align_callback_register(uint8_t cig_id, const void *callback);
 void ll_conn_rx_acl_callback_register(void (*callback)(uint8_t *packet, size_t size));
 void ll_set_scan_priority(uint8_t priority);
+int ll_vendor_get_conn_unit_is_us(void);
 void rf_mdm_con_ble_sync_word(int tws_esco);
 uint8_t ll_iso_unpack_hdr(const uint8_t *sdu, hci_iso_hdr_t *hdr);
 void access_addr_generate(u8 *aa);

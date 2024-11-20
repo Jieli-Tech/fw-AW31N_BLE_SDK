@@ -35,30 +35,11 @@ const char MM_ASSERT           = 1;//内存管理malloc内部断言
 const int config_asser         = 1;
 #endif
 
-const int config_system_info   = 0;
+//输出cbuf信息等
+const u8 config_system_info   = 0;
 
-//TODO
-#if 0
-//开启异常处理模块的lite打印版本(为了省代码空间,下面的控制变量必须逐级开启增加打印)
-//异常打印模块使能
-const u8 config_exception_enable = 1;
-//1.仅报显示触发单元的寄存器，报错后可以去到对应的异常单元取消对应的使能进行查看或者查看对应的emu文档
-const u8 config_exception_unit_lite_lite_enable  = 1;
-//1.仅报触发单元的id信息，报错后可以去到对应的异常单元取消对应的使能进行查看或者查看对应的emu文档
-const u8 config_exception_unit_lite_enable       = 1;
-//1.不报dev信息，报错后可以去到对应的异常单元取消对应的使能进行查看
-const u8 config_exception_dev_lite_enable        = 1;
-/* #else */
-/* //异常打印模块使能 */
-/* const u8 config_exception_enable = 0; */
-/* //1.仅报显示触发单元的寄存器，报错后可以去到对应的异常单元取消对应的使能进行查看或者查看对应的emu文档 */
-/* const u8 config_exception_unit_lite_lite_enable  = 0; */
-/* //1.仅报触发单元的id信息，报错后可以去到对应的异常单元取消对应的使能进行查看或者查看对应的emu文档 */
-/* const u8 config_exception_unit_lite_enable       = 0; */
-/* //1.不报dev信息，报错后可以去到对应的异常单元取消对应的使能进行查看 */
-/* const u8 config_exception_dev_lite_enable        = 0; */
-/* #endif */
-#endif
+//配置异常记录在flash 区域
+const u8 config_exception_record_info = 0;
 
 //================================================//
 //                  SDFILE 精简使能               //

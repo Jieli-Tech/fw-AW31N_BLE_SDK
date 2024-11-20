@@ -301,7 +301,6 @@ static void mouse_bt_start()
     btstack_ble_start_before_init(&mouse_ble_config, 0);
     le_hogp_set_reconnect_adv_cfg(ADV_IND, 5000);
 
-    cfg_file_parse(0);
     btstack_init();
 }
 

@@ -105,6 +105,17 @@ void usb_ep_enable(const usb_dev usb_id, u32 ep, u32 is_enable);
 void *usb_get_setup_buffer(const struct usb_device_t *usb_device);
 u32 usb_root2_testing();
 
+enum {
+    HOST_TYPE_UNKNOW = 0, //无法是被该USB主机类型
+    HOST_TYPE_WINDOWS,
+    HOST_TYPE_ANDROID,
+    HOST_TYPE_IOS,
+    HOST_TYPE_PS4,
+    HOST_TYPE_ERR = 0xFF, //枚举未完成或失败
+};
+void usb_reset_host_type();
+u32 usb_get_host_type();
+
 extern void usb_start();
 extern void usb_stop();
 extern void usb_pause();

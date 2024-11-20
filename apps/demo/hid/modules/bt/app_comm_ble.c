@@ -44,6 +44,7 @@
 
 #if TCFG_USER_BLE_ENABLE
 extern void ble_standard_dut_test_init(void);
+extern void ble2m_mdm_recfg_for_test();
 /*************************************************************************************************/
 /*!
  *  \brief     协议栈配置，协议栈初始化前调用
@@ -61,11 +62,15 @@ void btstack_ble_start_before_init(const ble_init_cfg_t *cfg, int param)
 {
     u8 tmp_ble_addr[6];
 
-    if (TCFG_NORMAL_SET_DUT_MODE || BT_MODE_IS(BT_BQB) || BT_MODE_IS(BT_FCC) || BT_MODE_IS(BT_FRE)) {
+    if (TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API || BT_MODE_IS(BT_BQB) || BT_MODE_IS(BT_FCC) || BT_MODE_IS(BT_FRE)) {
         //bt test mode
-        clk_set("sfc", TCFG_CLOCK_DUT_SFC_HZ);
+        //clk_set("sfc", 64000000);
+
         if (TCFG_NORMAL_SET_DUT_MODE) {
-            user_sele_dut_mode(1);//设置dut mode
+            user_sele_dut_mode(SET_DUT_MODE);//设置dut mode
+        }
+        if (TCFG_NORMAL_SET_DUT_MODE_API) {
+            user_sele_dut_mode(SET_DUT_API_MODE);
         }
 
         return;
@@ -77,6 +82,8 @@ void btstack_ble_start_before_init(const ble_init_cfg_t *cfg, int param)
         ASSERT(0);
     }
 
+
+#if TCFG_USER_EDR_ENABLE
     if (cfg->same_address) {
         //ble跟edr的地址一样
         memcpy(tmp_ble_addr, bt_get_mac_addr(), 6);
@@ -84,6 +91,10 @@ void btstack_ble_start_before_init(const ble_init_cfg_t *cfg, int param)
         //生成edr对应唯一地址
         bt_make_ble_address(tmp_ble_addr, (void *)bt_get_mac_addr());
     }
+#else
+    log_info("ble use bif mac");
+    memcpy(tmp_ble_addr, bt_get_mac_addr(), 6);
+#endif
 
     le_controller_set_mac((void *)tmp_ble_addr);
 
@@ -117,6 +128,12 @@ void btstack_ble_start_before_init(const ble_init_cfg_t *cfg, int param)
 /*************************************************************************************************/
 void btstack_ble_start_after_init(int param)
 {
+    if (TCFG_NORMAL_SET_DUT_MODE || BT_MODE_IS(BT_BQB) || BT_MODE_IS(BT_FCC) || BT_MODE_IS(BT_FRE)) {
+        //bt test mode
+        log_info("ble2m_mdm_recfg_for_test\n");
+        ble2m_mdm_recfg_for_test();
+    }
+
     extern void bt_ble_init(void);
     bt_ble_init();
 }

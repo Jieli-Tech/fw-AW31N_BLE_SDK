@@ -32,6 +32,9 @@
 #include "ble_trans.h"
 #include "cpu_debug.h"
 #include "my_malloc.h"
+#if TCFG_NORMAL_SET_DUT_MODE_API
+#include "ble_test_api.h"
+#endif
 #if RCSP_BTMATE_EN
 #include "rcsp_bluetooth.h"
 #endif
@@ -106,7 +109,6 @@ static void le_trans_bt_start()
 
     btstack_ble_start_before_init(&le_trans_data_config, 0);
 
-    cfg_file_parse(0);
     btstack_init();
 }
 /*************************************************************************************************/
@@ -255,6 +257,13 @@ static void le_trans_key_event_handler(struct sys_event *event)
         event_type = event->u.key.event;
         key_value = event->u.key.value;
         log_info("app_key_evnet: %d,%d\n", event_type, key_value);
+
+// dut api test
+#if TCFG_NORMAL_SET_DUT_MODE_API
+        ble_dut_mode_key_handle(event_type, key_value);
+        return;
+#endif
+
         if (event_type == KEY_EVENT_TRIPLE_CLICK && key_value == TCFG_ADKEY_VALUE0) {
             le_trans_set_soft_poweroff();
             return;

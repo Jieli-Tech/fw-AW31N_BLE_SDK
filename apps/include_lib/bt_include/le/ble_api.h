@@ -54,6 +54,7 @@ typedef enum {
     BLE_CMD_LATENCY_OPEN,
     BLE_CMD_LATENCY_CLOSE,
     BLE_CMD_US_UNIT,
+    BLE_CMD_GET_IS_US_UNIT,
     BLE_CMD_INIT_2MPHY,
     BLE_CMD_SET_DATA_LENGTH,
     BLE_CMD_SET_HCI_CFG,
@@ -919,6 +920,14 @@ void bt_make_ble_address(u8 *ble_address, u8 *edr_address);
 
 /*************************************************************************************************/
 /*!
+ *  \brief     获取是否配置了us为单位连接
+ */
+/*************************************************************************************************/
+#define ble_op_is_us_unit(ptr)     \
+	ble_user_cmd_prepare(BLE_CMD_GET_IS_US_UNIT, 1, ptr)
+
+/*************************************************************************************************/
+/*!
  *  \brief      测试盒识别按键测试.
  *
  *  \function   ble_cmd_ret_e ble_op_test_key_num(u16 con_handle,u8 key_num).
@@ -1391,12 +1400,50 @@ u8 le_hw_check_all_instant_will_be_valid(void);
 /*************************************************************************************************/
 int le_hw_send_packet_fast(void *priv_hw, const u8 *packet, int len, int tx_octets);
 
+/*************************************************************************************************/
+/*!
+ *  \brief      att  发送缓存申请.
+ *
+ *  \param      [in] size .
+ *
+ *  \return     ram address.
+ */
+/*************************************************************************************************/
 uint8_t *att_send_ram_alloc(uint32_t size);
 
+/*************************************************************************************************/
+/*!
+ *  \brief      att  发送缓存释放
+ *
+ *  \param      [in] ram_addr.
+ */
+/*************************************************************************************************/
 void att_send_ram_free(uint8_t *ram_addr);
 
+/*************************************************************************************************/
+/*!
+ *  \brief      主机流控操作，控制应答indication的confirm.
+ *
+ *  \param      [in] con_handle     range: >0.
+ *  \param      [in] hold_flag      range: 1-enable, 0-disable.
+ *
+ *  \return     0->success ,非0->fail.
+ *  note:       要配合server 使用 indication 通知的命令操作
+ */
+/*************************************************************************************************/
+int ble_att_client_set_flow(hci_con_handle_t con_handle, u8 hold_flag);
 
 
+/*************************************************************************************************/
+/*!
+ *  \brief      配置client连接后是否发送mtu request 命令,sdk 默认发送
+ *
+ *  \param      [in] enable : 1 or 0
+ *
+ *  note:       协议栈初始化完成后，链路连接前均可配置
+ */
+/*************************************************************************************************/
+void ble_att_client_send_mtu_request_config(uint8_t enable);
 
 
 

@@ -65,6 +65,9 @@ static u16 gatt_client_conn_handle[SUPPORT_MAX_GATT_CLIENT];
 static u8 gatt_server_conn_handle_state[SUPPORT_MAX_GATT_SERVER];//BLE_ST_CONNECT,BLE_ST_SEND_DISCONN,BLE_ST_NOTIFY_IDICATE
 static u8 gatt_client_conn_handle_state[SUPPORT_MAX_GATT_CLIENT];//BLE_ST_CONNECT,BLE_ST_SEND_DISCONN,BLE_ST_SEARCH_COMPLETE
 static char ble_device_name[BT_NAME_LEN_MAX + 1] = "JL_BLE";
+
+static void (*ble_comm_scan_rx_handler)(void *report_pt, uint16_t len) = NULL;
+
 //----------------------------------------------------------------------------------------
 u32 att_need_ctrl_ramsize(void);
 void ble_comm_server_profile_init(void);
@@ -360,6 +363,22 @@ u8 ble_comm_dev_get_handle_state(u16 handle, u8 role)
 
 /*************************************************************************************************/
 /*!
+ *  \brief       注册scan data 处理回调
+ *
+ *  \param      [in]
+ *
+ *  \return
+ *
+ *  \note
+ */
+/*************************************************************************************************/
+void ble_comm_dev_scan_handler_register(void *handler_cb)
+{
+    ble_comm_scan_rx_handler = handler_cb;
+}
+
+/*************************************************************************************************/
+/*!
  *  \brief      记录连接handle值
  *
  *  \param      [in]
@@ -561,6 +580,9 @@ static void __ble_comm_cbk_packet_handler(uint8_t packet_type, uint16_t channel,
 
         case GAP_EVENT_ADVERTISING_REPORT:
             ADD_HANDLER_ROLE(GATT_ROLE_CLIENT);
+            if (ble_comm_scan_rx_handler) {
+                ble_comm_scan_rx_handler((void *)&packet[2], packet[1]);
+            }
             break;
 
         case HCI_EVENT_LE_META:

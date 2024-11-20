@@ -74,5 +74,9 @@ u8 dual_bank_update_verify_without_crc_new(int (*verify_result_hdl)(int calc_crc
  */
 u32 dual_bank_passive_update_get_target_update_addr(void);
 
+/**
+ * @brief 对于手机没有传CRC过来的方案，需要自己读取每个文件出来校验
+ */
+u8 dual_bank_update_verify_without_crc(void);
 #endif
 

@@ -56,8 +56,14 @@ static void testbox_ble_update_before_jump_handle(int type)
 {
     //TODO 默认复位，蓝牙不做destory，减少stack消耗
     /* ll_hci_destory(); */
-
+#if CONFIG_UPDATE_JUMP_TO_MASK
+    sleep_overlay_check_reload();
+    log_info(">>>[test]:latch reset update\n");
+    struct app_soft_flag_t soft_flag = {0};
+    latch_reset(&soft_flag);
+#else
     system_reset(UPDATE_FLAG);
+#endif
 }
 
 __attribute__((noinline))

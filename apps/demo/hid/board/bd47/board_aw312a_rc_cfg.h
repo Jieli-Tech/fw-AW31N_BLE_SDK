@@ -227,7 +227,6 @@
 #define TCFG_CLOCK_MODE                    CLOCK_MODE_ADAPTIVE
 #define TCFG_CLOCK_SYS_HZ                  48000000
 #define TCFG_CLOCK_LSB_HZ                  48000000
-#define TCFG_CLOCK_DUT_SFC_HZ              64000000 //dut 运行时不能降低sfc，尤其是cache小的芯片，出现通信周期太小导致load代码来不及或者来不及处理rxadj的情况
 
 //*********************************************************************************//
 //                                供电模式配置                                     //
@@ -253,7 +252,7 @@
 //#define TCFG_LOWPOWER_POWER_SEL				PWR_DCDC15
 #define TCFG_LOWPOWER_POWER_SEL				PWR_LDO15                    //电源模式设置，可选DCDC和LDO
 #define TCFG_LOWPOWER_BTOSC_DISABLE			0                            //低功耗模式下BTOSC是否保持
-#define TCFG_LOWPOWER_LOWPOWER_SEL			DEEP_SLEEP_EN                //SNIFF状态下芯片是否进入powerdown
+#define TCFG_LOWPOWER_LOWPOWER_SEL			SLEEP_EN                //SNIFF状态下芯片是否进入powerdown
 #define TCFG_LOWPOWER_PATTERN               SOFT_MODE//SOFT_BY_POWER_MODE           //选择软关机的方式
 #define TCFG_LOWPOWER_VDDIOM_LEVEL			VDDIOM_VOL_30V
 #define TCFG_LOWPOWER_VDDIOW_LEVEL			VDDIOW_VOL_28V               //弱VDDIO等级配置

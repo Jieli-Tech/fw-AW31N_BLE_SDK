@@ -545,7 +545,6 @@ void ble_gatt_server_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
             tmp_val[0] = little_endian_read_16(packet, 2);
             tmp_val[1] = att_event_mtu_exchange_complete_get_MTU(packet);
             log_info("handle= %02x, ATT_MTU= %u,payload= %u\n", tmp_val[0], tmp_val[1], tmp_val[1] - 3);
-            ble_op_att_set_send_mtu(tmp_val[1]);
             /* ble_comm_set_connection_data_length(tmp_val[0], config_btctler_le_acl_packet_length, 2120);//主机处理 */
             __gatt_server_event_callback_handler(GATT_COMM_EVENT_MTU_EXCHANGE_COMPLETE, (u8 *)tmp_val, 4, 0);
         }
@@ -847,6 +846,13 @@ void ble_gatt_server_module_enable(u8 en)
 /*************************************************************************************************/
 int ble_gatt_server_connetion_update_request(u16 conn_handle, const struct conn_update_param_t *update_table, u16 table_count)
 {
+#if CONFIG_BLE_CONNECT_SLOT
+    // 低时延连接过滤请求参数流程
+    if (ll_vendor_get_conn_unit_is_us()) {
+        return GATT_OP_RET_SUCESS;
+    }
+#endif
+
     if (!conn_handle) {
         return GATT_CMD_PARAM_ERROR;
     }
@@ -1136,6 +1142,24 @@ void ble_gatt_server_receive_update_data(void *priv, void *buf, u16 len)
 {
     if (__this->update_recieve_callback) {
         __this->update_recieve_callback(priv, buf, len);
+    }
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief      ota ble 状态更新
+ *
+ *  \param      [in]
+ *
+ *  \return
+ *
+ *  \note
+ */
+/*************************************************************************************************/
+void ble_gatt_server_update_ble_state_callback(u16 conn_handle, ble_state_e state)
+{
+    if (__this->update_ble_state_callback) {
+        __this->update_ble_state_callback(NULL, state);
     }
 }
 

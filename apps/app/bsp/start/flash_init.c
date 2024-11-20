@@ -133,6 +133,7 @@ struct vfs_attr *get_eeprom_attr_p(void)
 {
     return &eeprom_attr;
 }
+
 void flash_system_init(void)
 {
     fs_resource_init();
@@ -144,5 +145,27 @@ void flash_system_init(void)
 #endif
 }
 
+AT_SPI_CODE/*该函数放置段不可更改*/
+u32 flash_code_unprotect_callback(u32 offset, u32 len)
+{
+    return 0;
+}
 
+void flash_code_set_unprotect(void)
+{
+    void *device = 0;
+    //升级前，解开写保护
+    device = dev_open(__SFC_NANE, 0);
+    dev_ioctl(device, IOCTL_SET_PROTECT_INFO, (u32)flash_code_unprotect_callback);
+    norflash_set_write_protect(0);
+}
+
+void flash_code_set_protect(void)
+{
+    void *device = 0;
+    //升级后(无论失败成功)，开启写保护
+    device = dev_open(__SFC_NANE, 0);
+    dev_ioctl(device, IOCTL_SET_PROTECT_INFO, (u32)flash_code_protect_callback);
+    norflash_set_write_protect(1);
+}
 

@@ -228,6 +228,7 @@ void ble_comm_module_enable(u8 en);
 int ble_comm_set_connection_data_length(u16 conn_handle, u16 tx_octets, u16 tx_time);
 int ble_comm_set_connection_data_phy(u16 conn_handle, u8 tx_phy, u8 rx_phy, u16 phy_options);
 bool ble_comm_dev_is_connected(u8 role);
+void ble_comm_dev_scan_handler_register(void *handler_cb);
 //server
 void ble_gatt_server_init(const gatt_server_cfg_t *server_cfg);
 void ble_gatt_server_exit(void);
@@ -243,6 +244,7 @@ void ble_gatt_server_set_update_send(u16 conn_handle, u16 att_handle, u8 att_han
 void ble_gatt_server_receive_update_data(void *priv, void *buf, u16 len);
 void ble_gatt_server_set_adv_config(adv_cfg_t *adv_cfg);
 void ble_gatt_server_set_profile(const u8 *profile_table, u16 size);
+void ble_gatt_server_update_ble_state_callback(u16 conn_handle, ble_state_e state);
 
 //client
 void ble_gatt_client_init(const gatt_client_cfg_t *client_cfg);

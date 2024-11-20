@@ -88,6 +88,6 @@ void system_reset(enum RESET_FLAG flag);
 /**
 * @brief  复位的时候锁存模拟模块状态，例如GPIO
 */
-void latch_reset();
+void latch_reset(struct app_soft_flag_t *softflag);
 
 #endif

@@ -32,7 +32,7 @@ void tick_timer_loop(void)
 {
     tick_cnt ++;
     jiffies_2ms++;
-    if (0 == (tick_cnt % 5)) {
+    if (0 == (tick_cnt % (DEF_JIFFIES_MS / 2))) {
         jiffies++;
     }
     if (0 == (tick_cnt % 3)) {

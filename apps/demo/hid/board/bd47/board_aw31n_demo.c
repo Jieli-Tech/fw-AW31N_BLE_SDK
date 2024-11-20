@@ -108,8 +108,13 @@ void key_wakeup_init()
 #endif
 
 #if KEY_AD_EN
+#if EXTERN_R_UP
     keys_config[index++] = create_key_io_wakeup_config(AD_KEY_IO, PORT_INPUT_FLOATING,
                            PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
+#else
+    keys_config[index++] = create_key_io_wakeup_config(AD_KEY_IO, PORT_INPUT_PULLUP_10K,
+                           PORT_FLT_DISABLE, FALLING_EDGE, key_active_set);
+#endif
 #endif
 
     // 初始化和启用IO唤醒

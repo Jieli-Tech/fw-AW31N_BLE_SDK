@@ -98,7 +98,6 @@ static void noconn_bt_start()
     bt_pll_para(TCFG_CLOCK_OSC_HZ, sys_clk, 0, 0);
 
     btstack_ble_start_before_init(NULL, 0);
-    cfg_file_parse(0);
     btstack_init();
 }
 
@@ -243,7 +242,7 @@ static void noconn_key_event_handler(struct sys_event *event)
         uint8_t key_value = 0;
         event_type = event->u.key.event;
         key_value = event->u.key.value;
-        log_info("app_key_evnet: %d,%d\n", event_type, key_value);
+        log_info("app_key_event: %d,%d\n", event_type, key_value);
 
         if (event_type == KEY_EVENT_TRIPLE_CLICK && (key_value == TCFG_ADKEY_VALUE0)) {
             noconn_set_soft_poweroff();

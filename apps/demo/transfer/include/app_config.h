@@ -2,7 +2,7 @@
 #define SPPLE_APP_CONFIG_H
 
 #include "le_common.h"
-
+#include "board_config.h"
 #ifdef CONFIG_RELEASE_ENABLE
 #define LIB_DEBUG    0
 #else
@@ -18,7 +18,7 @@
 
 //apps example 选择,只能选1个,要配置对应的board_config.h
 #define CONFIG_APP_LE_TRANS               1 // LE's slave
-#define CONFIG_APP_MULTI                  0 //蓝牙LE多连 支持2.4g code
+#define CONFIG_APP_MULTI                  0 //BLE多机应用，支持2.4g code,支持4主，3主1从，2主2从...
 #define CONFIG_APP_NONCONN_24G            0 //2.4G 非连接收发
 #define CONFIG_APP_DONGLE                 0 //usb + 蓝牙(ble 主机),PC hid设备, 使用需要配置板级board_aw31n_dongle.h
 #define CONFIG_APP_AT_CHAR_COM            0 //AT com 字符串格式命令
@@ -34,6 +34,11 @@
 #define CONFIG_BT_EXT_ADV_MODE            0
 
 #if CONFIG_APP_LE_TRANS
+#define CONFIG_BLE_HIGH_SPEED             0 //BLE提速模式: 使能DLE+2M, payload要匹配pdu的包长
+#if (CONFIG_BLE_HIGH_SPEED && TCFG_LOWPOWER_LOWPOWER_SEL)
+#error "ram limited, Please close low power if enable high speed"
+#endif
+
 //SDK 应用内存分配,谨慎修改
 #define SYS_STACK_SIZE                    (0x600)  //中断堆栈大小
 #define USR_STACK_SIZE                    (0x500)  //用户堆栈大小
@@ -42,10 +47,8 @@
 #define BT_NK_RAM_SIZE                    (0x660)  //nk malloc堆的大小
 #define BT_NV_RAM_SIZE                    (0xEC0)  //nv malloc堆的大小
 
-
 //配置双模同名字，同地址
 #define CONFIG_APP_SPP_LE_TO_IDLE          0 //SPP_AND_LE To IDLE Use
-#define CONFIG_BLE_HIGH_SPEED              0 //BLE提速模式: 使能DLE+2M, payload要匹配pdu的包长
 
 //蓝牙BLE配置
 #define CONFIG_BT_GATT_COMMON_ENABLE       1 //配置使用gatt公共模块
@@ -66,6 +69,14 @@
 
 #elif CONFIG_APP_DONGLE
 #define CONFIG_BLE_CONNECT_SLOT            0 //BLE高回报率设置, 支持私有协议,所有周期单位为us,适配1k回报率鼠标需要开此宏
+
+#define CONFIG_BT_GATT_CLIENT_NUM          1 // range(1~2)
+#define CONFIG_BT_GATT_SERVER_NUM          0
+
+#define CONFIG_BT_GATT_CONNECTION_NUM      (CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_GATT_CLIENT_NUM)
+
+#define CONFIG_BT_EXT_CONNECT_LINK_SIZE   (CONFIG_BT_GATT_CONNECTION_NUM) * 0x76C
+
 //SDK 应用内存分配,谨慎修改
 #if CONFIG_BLE_CONNECT_SLOT
 #define SYS_STACK_SIZE                    (0x900)  //中断堆栈大小
@@ -76,54 +87,98 @@
 #define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0x660 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
+#if (CONFIG_BT_GATT_CONNECTION_NUM > 1)
+#define BT_NV_RAM_SIZE                    (0xFC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE)  //nv malloc堆的大小
+#else
 #define BT_NV_RAM_SIZE                    (0xFC0)  //nv malloc堆的大小
+#endif
+
 
 #define CONFIG_BT_GATT_COMMON_ENABLE       1
 #define CONFIG_BT_SM_SUPPORT_ENABLE        1 //配置是否支持加密
-#define CONFIG_BT_GATT_CLIENT_NUM          1
-#define CONFIG_BT_COMPOSITE_EQUIPMENT      0
-#define CONFIG_BT_GATT_SERVER_NUM          0 //
-#define CONFIG_BT_GATT_CONNECTION_NUM      (CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_GATT_CLIENT_NUM) //
 #define CONFIG_BLE_HIGH_SPEED              0 //BLE提速模式: 使能DLE+2M, payload要匹配pdu的包长---TODO
 
 #elif CONFIG_APP_MULTI
+#define CONFIG_BLE_CONNECT_SLOT            0 //BLE高回报率设置, 支持私有协议,所有周期单位为us
+
+#define CONFIG_BT_NOCONN_ADV_NUM           0 //range(0~1)
+#define CONFIG_BT_NOCONN_SCAN_NUM          0 //range(0~1)
+
+#define CONFIG_BT_GATT_CLIENT_NUM          1 //range(0~4)
+#define CONFIG_BT_GATT_SERVER_NUM          0 //range(0~4)
+
+#if (CONFIG_BT_NOCONN_ADV_NUM && CONFIG_BT_GATT_SERVER_NUM)
+#error "SERVER && ADV NOT MUTUAL!"
+#endif
+
+#if (CONFIG_BT_NOCONN_SCAN_NUM && CONFIG_BT_GATT_CLIENT_NUM)
+#error "CLIENT && SCAN NOT MUTUAL!"
+#endif
+
+#define CONFIG_BT_GATT_CONNECTION_NUM     (CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_GATT_CLIENT_NUM)
+
+#if ((CONFIG_BT_GATT_CONNECTION_NUM + CONFIG_BT_NOCONN_ADV_NUM + CONFIG_BT_NOCONN_SCAN_NUM) > 1) && TCFG_LOWPOWER_LOWPOWER_SEL
+#error "ram limited, please close low power if more than one bt link"
+#endif
+
+#define CONFIG_BT_EXT_CONNECT_LINK_SIZE   (CONFIG_BT_GATT_CONNECTION_NUM) * 0x76C
+#define CONFIG_BT_EXT_ADV_LINK_SIZE       (CONFIG_BT_NOCONN_ADV_NUM) * 0x44C
+#define CONFIG_BT_EXT_SCAN_LINK_SIZE      (CONFIG_BT_NOCONN_SCAN_NUM) * 0x578
+
 //SDK 应用内存分配,谨慎修改
+#if CONFIG_BLE_CONNECT_SLOT
+#define SYS_STACK_SIZE                    (0x900)  //中断堆栈大小
+#else
 #define SYS_STACK_SIZE                    (0x600)  //中断堆栈大小
+#endif
+
 #define USR_STACK_SIZE                    (0x500)  //用户堆栈大小
 #define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0x660 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
+#if ((CONFIG_BT_GATT_CONNECTION_NUM + CONFIG_BT_NOCONN_ADV_NUM + CONFIG_BT_NOCONN_SCAN_NUM) > 1)
+#define BT_NV_RAM_SIZE                    (0xEC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE + CONFIG_BT_EXT_ADV_LINK_SIZE + CONFIG_BT_EXT_SCAN_LINK_SIZE)  //nv malloc堆的大小
+#else
 #define BT_NV_RAM_SIZE                    (0xEC0)  //nv malloc堆的大小
-
+#endif
 #define CONFIG_BT_GATT_COMMON_ENABLE       1
 #define CONFIG_BT_SM_SUPPORT_ENABLE        0
-#define CONFIG_BT_GATT_CLIENT_NUM          1 //range(0~1)
-#define CONFIG_BT_GATT_SERVER_NUM          0 //range(0~1)
 //2.4G模式: 0---ble, 非0---2.4G配对码; !!!主从欲连接,需保持配对码一致
 //!!!初始化之后任意非连接时刻修改配对码API:rf_set_conn_24g_coded
 #define CFG_USE_24G_CODE_ID_ADV            0
 #define CFG_USE_24G_CODE_ID_SCAN           0
 #define CFG_RF_24G_CODE_ID_SCAN            (0xAF9A9357) //<=24bits 主机扫描2.4G配对码, 可用void access_addr_generate(u8 *aa);生成
 #define CFG_RF_24G_CODE_ID_ADV             (0xAF9A9357) //<=24bits 从机广播2.4G配对码, 可用void access_addr_generate(u8 *aa);生成
-#define CONFIG_BT_GATT_CONNECTION_NUM      (CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_GATT_CLIENT_NUM) //range(0~1)
 #define CONFIG_BLE_HIGH_SPEED              0 //BLE提速模式: 使能DLE+2M, payload要匹配pdu的包长
 
 #elif CONFIG_APP_AT_CHAR_COM
+#define CONFIG_BT_GATT_CLIENT_NUM          0//range(0~4)
+#define CONFIG_BT_GATT_SERVER_NUM          1//range(0~4)
+
+#define CONFIG_BT_GATT_CONNECTION_NUM      (CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_GATT_CLIENT_NUM)
+
+#if (CONFIG_BT_GATT_CONNECTION_NUM  > 1) && TCFG_LOWPOWER_LOWPOWER_SEL
+#error "ram limited, please close low power if more than one bt link"
+#endif
+
+#define CONFIG_BT_EXT_CONNECT_LINK_SIZE   (CONFIG_BT_GATT_CONNECTION_NUM) * 0x76C
+
 //SDK 应用内存分配,谨慎修改
 #define SYS_STACK_SIZE                    (0x600)  //中断堆栈大小
 #define USR_STACK_SIZE                    (0x500)  //用户堆栈大小
 #define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0x660 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
+#if (CONFIG_BT_GATT_CONNECTION_NUM > 1)
+#define BT_NV_RAM_SIZE                    (0xEC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE)  //nv malloc堆的大小
+#else
 #define BT_NV_RAM_SIZE                    (0xEC0)  //nv malloc堆的大小
+#endif
 
 
 
 #define CONFIG_BT_GATT_COMMON_ENABLE       1//
 #define CONFIG_BT_SM_SUPPORT_ENABLE        0//
-#define CONFIG_BT_GATT_CLIENT_NUM          0//max is 1
-#define CONFIG_BT_GATT_SERVER_NUM          1//max is 1
-#define CONFIG_BT_GATT_CONNECTION_NUM      (CONFIG_BT_GATT_SERVER_NUM + CONFIG_BT_GATT_CLIENT_NUM)
 #define CONFIG_BLE_HIGH_SPEED              0 //BLE提速模式: 使能DLE+2M, payload要匹配pdu的包长
 #define TCFG_AUTO_SHUT_DOWN_TIME		   0
 
@@ -179,8 +234,15 @@
 
 #if CONFIG_BLE_HIGH_SPEED
 #define CONFIG_BLE_PHY_SET                CONFIG_SET_2M_PHY //SET 2M_PHY for protect
+#define PACKET_DATE_LEN                   251
+//Change ram
+#define BT_NK_RAM_SIZE_ALL                (BT_NK_RAM_SIZE + 0x600)
+#define BT_NV_RAM_SIZE_ALL                (BT_NV_RAM_SIZE + (PACKET_DATE_LEN) * (CONFIG_BT_GATT_CONNECTION_NUM * 3 + 1) + 0x700)
 #else
 #define CONFIG_BLE_PHY_SET                CONFIG_SET_1M_PHY //default
+#define PACKET_DATE_LEN                   27                //default
+#define BT_NK_RAM_SIZE_ALL                BT_NK_RAM_SIZE
+#define BT_NV_RAM_SIZE_ALL                BT_NV_RAM_SIZE
 #endif
 
 #ifndef CONFIG_BLE_CONNECT_SLOT
@@ -188,13 +250,12 @@
 #endif
 
 
-#if CONFIG_BT_GATT_CONNECTION_NUM > 8
-#error "SUPPORT MAX IS 8 !!!"
+#if CONFIG_BT_GATT_CONNECTION_NUM > 4
+#error "SUPPORT MAX IS 4 !!!"
 #endif
 
 #define MY_MALLOC_SELECT                   1 //1--使用heap_buf malloc, 0--使用nv_ram_malloc
 
-#include "board_config.h"
 //
 // #include "usb_common_def.h"
 
@@ -202,14 +263,6 @@
 
 #include "user_cfg_id.h"
 
-//需要app(BLE)升级
-#if CONFIG_APP_OTA_EN
-#define SYS_STACK_SIZE_ALL                (SYS_STACK_SIZE + 0x200)  //中断堆栈大小
-#define USR_STACK_SIZE_ALL                (USR_STACK_SIZE + 0)      //user堆栈大小
-#else
-#define SYS_STACK_SIZE_ALL                SYS_STACK_SIZE
-#define USR_STACK_SIZE_ALL                USR_STACK_SIZE
-#endif
 
 
 //需要app(BLE)升级要开一下宏定义
@@ -229,18 +282,21 @@
 
 #if (CONFIG_BT_MODE == BT_NORMAL)
 //enable dut mode,need disable sleep(TCFG_LOWPOWER_LOWPOWER_SEL = 0)
-#define TCFG_NORMAL_SET_DUT_MODE                  0
-#if TCFG_NORMAL_SET_DUT_MODE
+// DUT模式选择,二选一有且仅选一种
+#define TCFG_NORMAL_SET_DUT_MODE                  0 // DUT测试模式,默认上电进初始化
+#define TCFG_NORMAL_SET_DUT_MODE_API              0 // DUT api 模式,需要自行调用api测试,见ble_test_api.c
+#if TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API
 #undef  TCFG_LOWPOWER_LOWPOWER_SEL
 #define TCFG_LOWPOWER_LOWPOWER_SEL                0
 
+#if TCFG_NORMAL_SET_DUT_MODE
 //close key
 #undef KEY_AD_EN
 #define KEY_AD_EN                                 0
 
 #undef KEY_IO_EN
 #define KEY_IO_EN                                 0
-
+#endif
 #undef  TCFG_SYS_LVD_EN
 #define TCFG_SYS_LVD_EN						      0
 
@@ -257,6 +313,7 @@
 #else
 
 #define TCFG_NORMAL_SET_DUT_MODE                  0
+#define TCFG_NORMAL_SET_DUT_MODE_API              0
 
 //close key
 #undef KEY_AD_EN
@@ -315,6 +372,18 @@
 
 #endif
 
+//需要app(BLE)升级
+#if CONFIG_APP_OTA_EN
+#define SYS_STACK_SIZE_ALL                (SYS_STACK_SIZE + 0x200)  //中断堆栈大小
+#define USR_STACK_SIZE_ALL                (USR_STACK_SIZE + 0)      //user堆栈大小
+#else
+#if TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API
+#define SYS_STACK_SIZE_ALL                SYS_STACK_SIZE + 0x32
+#else
+#define SYS_STACK_SIZE_ALL                SYS_STACK_SIZE
+#endif
+#define USR_STACK_SIZE_ALL                USR_STACK_SIZE
+#endif
 
 #define BT_FOR_APP_EN                     0
 
@@ -325,10 +394,6 @@
 #else
 #define RCSP_BTMATE_EN                    0
 #define UPDATE_MD5_ENABLE                 0
-#endif
-
-#if TCFG_CLOCK_SYS_HZ == 160000000 && TCFG_CLOCK_SYS_PLL_HZ != 240000000
-#error "SYS_HZ and SYS_PLL_ZH NO MATCH"
 #endif
 
 /*

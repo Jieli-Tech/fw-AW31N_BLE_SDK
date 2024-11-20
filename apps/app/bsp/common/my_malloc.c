@@ -47,7 +47,7 @@ void *my_malloc(u32 size, mm_type xType)
 #if MALLOC_INFO_PRINTF
         mem_printf();
 #endif
-        ASSERT(0, "err malloc empty(0x%x), size 0x%x,type 0x%x\n,rets  0x%x\n", my_get_free_size(), size, xType, rets);
+        ASSERT(0, "my_malloc null(free:0x%x), need 0x%x,type 0x%x\n,rets %08x\n", my_get_free_size(), size, xType, rets);
     }
     return res;
 #else

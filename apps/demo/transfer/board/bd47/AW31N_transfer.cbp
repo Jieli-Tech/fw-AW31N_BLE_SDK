@@ -34,8 +34,8 @@
 <Add option="-DSUPPORT_RESERVATION_RAM" />
 <Add option="-fms-extensions" />
 <Add option="-DAPP_CASE_TRANSFER" />
-<Add option="-DSDK_VERSION_CFG_DEFINE=0x110003" />
-<Add option="-DSDK_VERSION_DATE_DEFINE=20240717" />
+<Add option="-DSDK_VERSION_CFG_DEFINE=0x120001" />
+<Add option="-DSDK_VERSION_DATE_DEFINE=202401113" />
 <Add option="-DCONFIG_RELEASE_ENABLE" />
 <Add option="-DHAS_VFS_EN=1" />
 <Add option="-DNOFLOAT" />
@@ -145,6 +145,7 @@
 </ExtraCommands>
 </Target>
 </Build>
+<Unit filename="../../../../../apps/app/bsp/common/bt_common/ble_test_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/common/code_switch/code_switch.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/common/code_switch/code_switch.h" />
 <Unit filename="../../../../../apps/app/bsp/common/common_uart/common_uart_control.c"><Option compilerVer="CC"/></Unit>
@@ -204,6 +205,8 @@
 <Unit filename="../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common/le_gatt_common.h" />
 <Unit filename="../../../../../apps/app/bsp/common/third_party_profile/jieli/gatt_common/le_gatt_server.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/common/third_party_profile/jieli/le_common.h" />
+<Unit filename="../../../../../apps/app/bsp/common/update/dual_update_crc_cal.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="../../../../../apps/app/bsp/common/update/dual_update_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/common/update/testbox_uart_update.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/common/update/testbox_update.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/common/update/update.c"><Option compilerVer="CC"/></Unit>
@@ -245,6 +248,8 @@
 <Unit filename="../../../../../apps/app/bsp/device/device_app.h" />
 <Unit filename="../../../../../apps/app/bsp/device/device_list.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/start/bd47/main.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="../../../../../apps/app/bsp/start/cfg_bin.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="../../../../../apps/app/bsp/start/cfg_bin.h" />
 <Unit filename="../../../../../apps/app/bsp/start/flash_init.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/start/flash_init.h" />
 <Unit filename="../../../../../apps/app/bsp/start/init.c"><Option compilerVer="CC"/></Unit>
@@ -288,9 +293,11 @@
 <Unit filename="../../../../../apps/demo/transfer/examples/multi_conn/app_multi_conn.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/transfer/examples/multi_conn/ble_multi.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/transfer/examples/multi_conn/ble_multi.h" />
+<Unit filename="../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_adv.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_central.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_peripheral.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_profile.h" />
+<Unit filename="../../../../../apps/demo/transfer/examples/multi_conn/ble_multi_scan.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/transfer/examples/nonconn_trans/app_nonconn_trans.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/transfer/examples/nonconn_trans/ble_noconn_deal.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/transfer/examples/nonconn_trans/ble_noconn_deal.h" />
@@ -345,6 +352,7 @@
 <Unit filename="../../../../../apps/include_lib/bt_include/third_party/rcsp/attr.h" />
 <Unit filename="../../../../../apps/include_lib/bt_include/third_party/rcsp/rcsp_auth.h" />
 <Unit filename="../../../../../apps/include_lib/common/assert_d.h" />
+<Unit filename="../../../../../apps/include_lib/common/ble_test_api.h" />
 <Unit filename="../../../../../apps/include_lib/common/boot.h" />
 <Unit filename="../../../../../apps/include_lib/common/circular_buf.h" />
 <Unit filename="../../../../../apps/include_lib/common/common.h" />

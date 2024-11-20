@@ -2,6 +2,8 @@
 #define _CPU_DEBUG_H_
 #include "typedef.h"
 
+extern const u8 config_exception_record_info;
+
 void emu_init();
 
 //实时检测当前位置栈的深度
