@@ -43,6 +43,8 @@ static volatile u8 is_testbox_uart_active = 0;	//串口升级空闲
 #define CMD_SEND_UPDATE_LEN 0x04
 #define CMD_KEEP_ALIVE      0x05
 
+#define CMD_UART_UPDATE_READY  0x06
+
 #define SEEK_SET	0	/* Seek from beginning of file.  */
 #define SEEK_CUR	1	/* Seek from current position.  */
 #define SEEK_END	2	/* Seek from end of file.  */
@@ -91,6 +93,7 @@ static volatile u32 file_offset = 0;
 static const u8 ack_cmd[5] = {0x55, 0xaa, 1, 0x20, 0x22} ;
 static const u8 ack_cmd_1[6] = {0x55, 0xaa, 2, 0x20, 0xAA, 0xAA} ;
 static u32 update_baudrate = 0;
+static u32 update_type = TESTBOX_UART_UPDATA;
 
 extern u16 chip_crc16(void *ptr, u32 len);
 extern void uart_update_check(void);
@@ -325,6 +328,43 @@ static void app_testbox_loader_ufw_update_private_param_fill(UPDATA_PARM *p)
     memcpy(p->file_patch, updata_file_name, strlen(updata_file_name));
 }
 
+#if APP_USER_UART_UPDATE_EN
+static bool is_uart_update_format_data(u8 *buf, u16 len)
+{
+    u8 ch = 0;
+    u8 ch1 = 0;
+    for (u8 i = 0; i < 2 && len > 3; i++) {
+        ch = buf[i];
+        ch1 = buf[i + 1];
+        if (SYNC_MARK0 == ch && SYNC_MARK1 == ch1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+extern void uart_update_loader_tran_end_check(void *p);
+static void app_user_uart_update_start_check(u8 *buf, u16 len)
+{
+    if (is_uart_update_format_data(buf, len)) {
+        uart_data_decode(buf, len);
+        if (CMD_UART_UPDATE_READY == protocal_frame->data.data[0]) {
+            update_type = UART_UPDATA;
+            uart_update_loader_tran_end_check(NULL);
+        }
+    }
+}
+
+extern void update_param_ext_fill(UPDATA_PARM *p, u8 ext_type, u8 *ext_data, u8 ext_len);
+static void app_user_uart_update_param_private_handle(UPDATA_PARM *p)
+{
+    UPDATA_UART uart_param = {.control_baud = update_baudrate, .control_io_tx = TCFG_UART_UPDATE_PORT, .control_io_rx = TCFG_UART_UPDATE_PORT};
+    memcpy(p->parm_priv, &uart_param, sizeof(uart_param));
+    u8 buf = 0;
+    update_param_ext_fill(p, EXT_MUTIL_UPDATE_NAME, &buf, 1);
+}
+#endif
+
 static void testbox_uart_update_param_private_handle(UPDATA_PARM *p)
 {
     struct testbox_uart_update_info testbox_uart_update_parm;
@@ -353,6 +393,12 @@ static void testbox_uart_update_param_private_handle(UPDATA_PARM *p)
     memcpy(p->parm_priv, &testbox_uart_update_parm, sizeof(testbox_uart_update_parm));
 
     memcpy(p->file_patch, updata_file_name, strlen(updata_file_name));
+
+#if APP_USER_UART_UPDATE_EN
+    if (UART_UPDATA == update_type) {
+        app_user_uart_update_param_private_handle(p);
+    }
+#endif
 }
 
 void testbox_uart_update_jump_flag_fill(void)
@@ -394,7 +440,7 @@ static void testbox_uart_update_state_cbk(int type, u32 state, void *priv)
 static void testbox_uart_update_check(void)
 {
     update_mode_info_t info = {
-        .type = TESTBOX_UART_UPDATA,
+        .type = update_type,
         .state_cbk = testbox_uart_update_state_cbk,
         .p_op_api = (update_op_api_t *) &uart_dev_update_op,
         .task_en = 0,
@@ -453,6 +499,9 @@ static u8 uart_update_deal(u8 *buf, u32 len)
 {
     switch (uart_step) {
     case UART_UPDATE_START:
+#if APP_USER_UART_UPDATE_EN
+        app_user_uart_update_start_check(buf, len);
+#endif
         return 0;// 需要后续处理
         break;
     case UART_UPDATE_OTA_RECV:
@@ -510,7 +559,9 @@ static void uart_update_isr_hook(uart_dev uart_num, enum uart_event event)
             if (uart_update_deal(protocal_frame->raw_data, len)) {
                 return;
             }
-            uart_update_data_deal(protocal_frame->raw_data, len);
+            if (UART_UPDATA != update_type) {
+                uart_update_data_deal(protocal_frame->raw_data, len);
+            }
         }
         /* is_testbox_uart_active = 0; */
     }

@@ -29,6 +29,7 @@ extern "C" {
 #define SM_EVENT_PASSKEY_DISPLAY_CANCEL                    0xD3
 #define SM_EVENT_PASSKEY_INPUT_NUMBER                      0xD4
 #define SM_EVENT_PASSKEY_INPUT_CANCEL                      0xD5
+#define SM_EVENT_KEYPRESS_NOTIFICATION                     0xDD
 #define SM_EVENT_PAIR_PROCESS                              0xDF
 //0xdf 's sub
 #define SM_EVENT_PAIR_SUB_RECONNECT_START                        0x01

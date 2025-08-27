@@ -251,6 +251,11 @@ u32 config_vendor_le_bb = 0;
 const u32 config_low_power_timeout_reserved = 1025;//低功耗蓝牙预留时间
 const int config_btctler_le_conn_update_param_check = 1;//是否校验连接参数并发起reject
 
+u32 config_phy_code_le_bb = 0;
+void set_config_phy_code_le_bb(u32 vendor_le_bb)
+{
+    config_phy_code_le_bb = vendor_le_bb;
+}
 /*-----------------------------------------------------------*/
 /**
  * @brief Bluetooth Analog setting

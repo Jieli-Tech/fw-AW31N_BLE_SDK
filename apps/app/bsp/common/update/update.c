@@ -12,7 +12,7 @@
 #include "code_v2/uart_update.h"
 #include "code_v2/dual_bank_updata_api.h"
 /* #include "btstack/avctp_user.h" */
-/* #include "poweroff.h" */
+#include "clock.h"
 /* #include "app_main.h" */
 
 #if UPDATE_V2_EN
@@ -388,6 +388,14 @@ static void update_param_content_fill(int type, UPDATA_PARM *p, void (*priv_para
 #endif
     update_param_ext_fill(p, EXT_JUMP_FLAG, &ext_flag, ext_len);
 
+#ifdef CONFIG_CPU_BD47
+
+    u32 lrc_freq = get_lrc_hz();
+    // cppcheck-suppress unreadVariable
+    memcpy(&p->file_patch[16], (u8 *)&lrc_freq, 4); //lrc freq
+    memcpy(&p->file_patch[20], &config_xosc_1pin_en, 1);//单双脚
+#endif
+
     p->parm_crc = CRC16(((u8 *)p) + 2, sizeof(UPDATA_PARM) - 2);	//2 : crc_val
 }
 
@@ -496,10 +504,12 @@ extern const int support_dual_bank_update_en;
 extern int tws_ota_init(void);
 extern void tws_api_auto_role_switch_disable();
 extern void tws_api_auto_role_switch_enable();
+extern int  norflash_set_write_protect(u32 enable);
 
 static void update_init_common_handle(int type)
 {
     ota_status = 1;
+    norflash_set_write_protect(0);
     if (UPDATE_DUAL_BANK_IS_SUPPORT()) {
 #if TCFG_AUTO_SHUT_DOWN_TIME
         sys_auto_shut_down_disable();
@@ -515,7 +525,11 @@ static void update_init_common_handle(int type)
 
 static void update_exit_common_handle(int type, void *priv)
 {
-    /* update_ret_code_t *ret_code = (update_ret_code_t *)priv; */
+    update_ret_code_t *ret_code = (update_ret_code_t *)priv;
+
+    if (UPDATE_RESULT_ERR_NONE != ret_code->err_code && (UPDATE_RESULT_FLAG_BITMAP | UPDATE_RESULT_ERR_NONE) != ret_code->err_code) {
+        norflash_set_write_protect(1);
+    }
 
 #if TCFG_AUTO_SHUT_DOWN_TIME
     sys_auto_shut_down_enable();
@@ -605,5 +619,12 @@ void update_start_exit_sniff(void)
 #endif
     sys_auto_sniff_controle(0, NULL);
 #endif
+}
+
+#else
+// match api call
+u16 update_result_get(void)
+{
+    return UPDATA_NON;
 }
 #endif

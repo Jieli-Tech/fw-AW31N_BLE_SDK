@@ -504,6 +504,11 @@ void mouse_set_is_paired(uint8_t is_paired)
     mouse_info.mouse_is_paired = is_paired;
 }
 
+void mouse_set_is_paired_cb(void *priv)
+{
+    uint8_t is_paired = *(uint8_t *)priv;
+    mouse_set_is_paired(is_paired);
+}
 /*************************************************************************************************/
 /*!
  *  \brief      获取MOUSE状态信息
@@ -574,7 +579,7 @@ static void mouse_hogp_ble_status_callback(ble_state_e status, uint32_t value)
     case BLE_ST_CONNECTION_UPDATE_OK:
 #if TEST_MOUSE_SIMULATION_ENABLE
         // 测试模式不能立即发数，否则会报超时断开
-        sys_timeout_add((void *)1, mouse_set_is_paired, 500);
+        sys_timeout_add((void *)1, mouse_set_is_paired_cb, 500);
 #else
         if (!le_hogp_get_is_paired()) {
             mouse_set_is_paired(1);

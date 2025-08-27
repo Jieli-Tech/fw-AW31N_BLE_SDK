@@ -7,7 +7,6 @@
 *********************************************************************************************/
 #include "includes.h"
 #include "app_config.h"
-#include "app_config.h"
 #include "app_action.h"
 #include "app_main.h"
 #include "app_power_mg.h"
@@ -22,8 +21,8 @@
 #define LOG_INFO_ENABLE
 /* #define LOG_DUMP_ENABLE */
 #define LOG_CLI_ENABLE
-/* #include "debug.h" */
 #include "log.h"
+/* #include "debug.h" */
 
 //*********************************************************************************//
 //                sdk 堆栈、堆、蓝牙ram的分配定义                                  //
@@ -35,8 +34,8 @@ int _ustack_top[1] sec_used(.ustack_top);//fixed
 static int _sstack_space[SYS_STACK_SIZE_ALL / 4] sec_used(.sstack);
 static int _ustack_space[USR_STACK_SIZE_ALL / 4] sec_used(.ustack);
 
-static int _sys_heap_space[SYS_HEAP_SIZE / 4] sec_used(.sec_sys_heap);
-static int _bt_nk_ram_min[BT_NK_RAM_SIZE_ALL / 4] sec_used(.sec_bt_nk_ram); //最少占用
+static int _sys_heap_space[SYS_HEAP_SIZE / 4] sec_used(.sec_sys_heap);//最少占用
+static int _bt_nk_ram_min[BT_NK_RAM_SIZE_ALL / 4] sec_used(.sec_bt_nk_ram);//最少占用
 static int _bt_nv_ram_min[BT_NV_RAM_SIZE_ALL / 4] sec_used(.sec_bt_nv_ram);//最少占用
 
 //*********************************************************************************//
@@ -45,15 +44,15 @@ static struct application *main_application_operation_state(struct application *
 //*********************************************************************************//
 //                                  中断优先级配置                                 //
 //*********************************************************************************//
-const int IRQ_IRTMR_IP        = 6;
-const int IRQ_WFILE_IP        = 1;
-const int IRQ_ADC_IP          = 1;
-const int IRQ_TICKTMR_IP      = 3;
-const int IRQ_USB_IP	      = 3;
-const int IRQ_SD_IP		      = 3;
-const int IRQ_CTMU_IP	      = 2;
-const int IRQ_LEDC_IP         = 1;
-const int IRQ_SLCD_IP         = 2;
+const int IRQ_IRTMR_IP        = 6;	//红外接收
+const int IRQ_WFILE_IP        = 1;	//no use
+const int IRQ_ADC_IP          = 1;	//adc
+const int IRQ_TICKTMR_IP      = 3;	//tick_timer
+const int IRQ_USB_IP	      = 3;	//usb
+const int IRQ_SD_IP		      = 3;	//sd
+const int IRQ_CTMU_IP	      = 2;	//no use
+const int IRQ_LEDC_IP         = 1;	//no use
+const int IRQ_SLCD_IP         = 2;	//no use
 //BT
 const int IRQ_BT_TIMEBASE_IP  = 6;   //BT TIMEBASE
 const int IRQ_BLE_EVENT_IP    = 5;   //BT RX_EVT
@@ -73,8 +72,6 @@ APP_VAR app_var;
 
 void app_var_init(void)
 {
-    app_var.play_poweron_tone = 1;
-
     app_var.auto_off_time =  0; //TCFG_AUTO_SHUT_DOWN_TIME;
     app_var.warning_tone_v = 340;
     app_var.poweroff_tone_v = 330;
@@ -87,6 +84,34 @@ u8 get_charge_online_flag(void)
 }
 
 void clr_wdt(void);
+
+void check_power_on_key(void)
+{
+#if TCFG_POWER_ON_NEED_KEY
+
+    u32 delay_10ms_cnt = 0;
+    while (1) {
+        clr_wdt();
+        os_time_dly(1);
+
+        extern u8 get_power_on_status(void);
+        if (get_power_on_status()) {
+            log_info("+");
+            extern void set_key_poweron_flag(u8 flag);
+            set_key_poweron_flag(1);
+            delay_10ms_cnt++;
+            if (delay_10ms_cnt > 70) {
+                return;
+            }
+        } else {
+            log_info("-");
+            delay_10ms_cnt = 0;
+            log_info("enter softpoweroff\n");
+            power_set_soft_poweroff();
+        }
+    }
+#endif
+}
 
 void app_main()
 {
@@ -102,6 +127,10 @@ void app_main()
              NV_RAM_MALLOC_START_ADDR, NV_RAM_MALLOC_SIZE);
 
     log_info("sstack:size,top= %04x, %08x,ustack:size,top= %04x, %08x", sizeof(_sstack_space), _sstack_top, sizeof(_ustack_space), _ustack_top);
+
+#if TCFG_POWER_ON_NEED_KEY
+    check_power_on_key();
+#endif
 
 #if TCFG_SYS_LVD_EN
     app_power_vbat_check();
@@ -171,7 +200,7 @@ static void main_app_get_name(struct intent *it)
 static struct application *main_application_operation_state(struct application *app, enum app_state state)
 {
     struct intent it;
-    const struct application *dev = NULL;
+    const struct  application *dev = NULL;
 
     main_app_get_name(&it);
 
@@ -193,6 +222,7 @@ static struct application *main_application_operation_state(struct application *
 
 void main_sys_event_msg_handle(int *msg)
 {
+    // putchar('$');
     struct sys_event *event_ptr = (struct sys_event *)msg[1];
     const struct application_operation *ops_ptr = (const struct application_operation *)msg[2];
     ops_ptr->event_handler(NULL, event_ptr);
@@ -229,16 +259,14 @@ void bt_event_update_to_user(u8 *addr, u32 type, u8 event, u32 value)
         log_info("Memory allocation failed for sys_event");
         return;
     }
-
-    e->type = 0x0010;
+    e->type = SYS_BT_EVENT;
     if (addr != NULL) {
         memcpy(e->u.bt.args, addr, 6);
     }
-    e->arg = (void *)type;
+    e->arg  = (void *)type;
     e->u.bt.event = event;
     e->u.bt.value = value;
 
     main_application_operation_event(NULL, e);
 }
-
 

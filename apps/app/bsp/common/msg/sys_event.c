@@ -9,7 +9,7 @@
 #include "log.h"
 
 // 全局消息数组池和标志数组
-#define         POOL_SIZE           10 // 数组池的大小
+#define         POOL_SIZE           6 //数组池的最小临界值
 NOT_KEEP_RAM
 struct sys_event event_pool[POOL_SIZE];
 
@@ -36,7 +36,7 @@ struct sys_event *event_pool_alloc()
             return &event_pool[i];
         }
     }
-    log_error("No free blocks in the pool\n");
+    ASSERT(0, "No free blocks in the pool\n");
     return NULL;
 }
 

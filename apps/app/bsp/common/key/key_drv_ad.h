@@ -5,7 +5,7 @@
 #include "config.h"
 #include "clock.h"
 #include "app_config.h"
-#include "adc_api.h"
+#include "gpadc.h"
 
 #define ADC_CH_NONE         0Xff
 #define ADC_VALUE_NONE      0XFFFF

@@ -30,6 +30,7 @@ void extern_dcdc_en(u32 en, u32 delay_us)
 
 void ldo_en(u32 en)
 {
+#if 0
     if (CONFIG_POWER_MODE != PWR_DCDC15) {
         return;
     }
@@ -47,6 +48,7 @@ void ldo_en(u32 en)
         clock_adaptive_sw(0);
         clk_set_max_frequency(128 * MHz_UNIT);
     }
+#endif
 }
 
 void extern_dcdc_switch(u32 sw)

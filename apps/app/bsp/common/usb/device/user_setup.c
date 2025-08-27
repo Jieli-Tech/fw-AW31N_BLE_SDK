@@ -235,8 +235,9 @@ static u32 setup_interface(struct usb_device_t *usb_device, struct usb_ctrlreque
 }
 static u32 user_setup_filter(struct usb_device_t *usb_device, struct usb_ctrlrequest *request)
 {
-    // dump_setup_request(request);
-    // log_debug_hexdump((u8 *)request, 8);
+    //log_info("%s", __func__);
+    //dump_setup_request(request);
+    //log_debug_hexdump((u8 *)request, 8);
     u32 ret = 0;
     u32 recip = request->bRequestType & USB_RECIP_MASK;
     switch (recip) {

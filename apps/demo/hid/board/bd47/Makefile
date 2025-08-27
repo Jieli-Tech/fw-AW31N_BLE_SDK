@@ -28,7 +28,7 @@ EXT_CFLAGS  := # Windows 下不需要 -D__SHELL__
 export PATH:=$(TOOL_DIR);$(PATH)
 
 ## 后处理脚本
-FIXBAT          := ..\..\..\..\..\tools\utils\fixbat.exe # 用于处理 utf8->gbk 编码问题
+FIXBAT          := ../../../../../tools/utils/fixbat.exe # 用于处理 utf8->gbk 编码问题
 POST_SCRIPT     := ../../../../../apps/app/post_build/bd47/download.bat
 RUN_POST_SCRIPT := ..\..\..\..\..\apps\app\post_build\bd47\download.bat
 else
@@ -88,6 +88,8 @@ CFLAGS := \
 	-Wframe-larger-than=256 \
 	-Wreturn-type \
 	-Wimplicit-function-declaration \
+	-Werror=jl-arg-struct-check \
+	-Werror \
 	-Werror=implicit-function-declaration \
 	-Werror=return-type \
 	-Werror=undef \
@@ -107,8 +109,8 @@ DEFINES := \
 	-DSUPPORT_MS_EXTENSIONS \
 	-DSUPPORT_RESERVATION_RAM \
 	-DAPP_CASE_HID \
-	-DSDK_VERSION_CFG_DEFINE=0x120001 \
-	-DSDK_VERSION_DATE_DEFINE=202401113 \
+	-DSDK_VERSION_CFG_DEFINE=0x130001 \
+	-DSDK_VERSION_DATE_DEFINE=20250822 \
 	-DCONFIG_RELEASE_ENABLE \
 	-DHAS_VFS_EN=1 \
 	-DNOFLOAT \
@@ -246,12 +248,13 @@ c_SRC_FILES := \
 	../../../../../apps/app/bsp/common/usb/device/user_setup.c \
 	../../../../../apps/app/bsp/common/vm/nvm_api.c \
 	../../../../../apps/app/bsp/common/vm/vm_api.c \
-	../../../../../apps/app/bsp/cpu/bd47/adc_api.c \
 	../../../../../apps/app/bsp/cpu/bd47/cpu_debug.c \
 	../../../../../apps/app/bsp/cpu/bd47/device.c \
+	../../../../../apps/app/bsp/cpu/bd47/gpadc_hw.c \
 	../../../../../apps/app/bsp/cpu/bd47/led/led_api.c \
 	../../../../../apps/app/bsp/cpu/bd47/led/led_api_test.c \
 	../../../../../apps/app/bsp/cpu/bd47/led/pwm_led.c \
+	../../../../../apps/app/bsp/cpu/bd47/mcpwm.c \
 	../../../../../apps/app/bsp/cpu/bd47/my_print.c \
 	../../../../../apps/app/bsp/cpu/bd47/power/extern_dcdc/extern_dcdc.c \
 	../../../../../apps/app/bsp/cpu/bd47/power/power_app.c \
@@ -259,6 +262,8 @@ c_SRC_FILES := \
 	../../../../../apps/app/bsp/cpu/bd47/power_api.c \
 	../../../../../apps/app/bsp/cpu/bd47/tick_timer_sys.c \
 	../../../../../apps/app/bsp/cpu/bd47/uart.c \
+	../../../../../apps/app/bsp/cpu/gpadc.c \
+	../../../../../apps/app/bsp/cpu/gpadc_hw_v12.c \
 	../../../../../apps/app/bsp/device/device_app.c \
 	../../../../../apps/app/bsp/device/device_list.c \
 	../../../../../apps/app/bsp/start/bd47/main.c \
@@ -283,6 +288,7 @@ c_SRC_FILES := \
 	../../../../../apps/demo/hid/examples/keypage/app_keypage.c \
 	../../../../../apps/demo/hid/examples/mouse_dual/app_mouse_dual.c \
 	../../../../../apps/demo/hid/examples/mouse_dual/mouse_usb.c \
+	../../../../../apps/demo/hid/examples/mouse_low_latency/app_mouse_low_latency.c \
 	../../../../../apps/demo/hid/examples/mouse_single/app_mouse_single.c \
 	../../../../../apps/demo/hid/examples/remote_control/app_remote_control.c \
 	../../../../../apps/demo/hid/modules/app_comm_proc.c \
@@ -326,6 +332,7 @@ LFLAGS := \
 	../../../../../apps/include_lib/liba/bd47/flash/agreement.a \
 	../../../../../apps/include_lib/liba/bd47/flash/update_lib.a \
 	../../../../../apps/include_lib/liba/bd47/flash/cpu_lib.a \
+	../../../../../apps/include_lib/liba/bd47/flash/pll_frac_lib.a \
 	../../../../../apps/include_lib/liba/bd47/flash/fs_lib.a \
 	../../../../../apps/include_lib/liba/bd47/flash/malloc_lib.a \
 	../../../../../apps/include_lib/liba/bd47/flash/sys_timer_lib.a \
@@ -426,37 +433,31 @@ endif
 $(BUILD_DIR)/%.c.o : $(ROOT_PREFIX)/%.c
 	$(info +CC $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.S.o : $(ROOT_PREFIX)/%.S
 	$(info +AS $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.s.o : $(ROOT_PREFIX)/%.s
 	$(info +AS $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.cpp.o : $(ROOT_PREFIX)/%.cpp
 	$(info +CXX $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.cxx.o : $(ROOT_PREFIX)/%.cxx
 	$(info +CXX $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 $(BUILD_DIR)/%.cc.o : $(ROOT_PREFIX)/%.cc
 	$(info +CXX $<)
 	$(QUITE) $(MKDIR) $(@D)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MM -MT $@ $< -o $(@:.o=.d)
-	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+	$(QUITE) $(CXX) $(CXXFLAGS) $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MF $(@:.o=.d) -c $< -o $@
 
 -include $(DEP_FILES)

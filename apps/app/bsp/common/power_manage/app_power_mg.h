@@ -23,8 +23,10 @@
 #define LOW_POWER_SOFTOFF_TIME      (60 * 1000)
 
 //low power param
-#define LOW_POWER_KEEP          -2 //进入低功耗并一直保持不退出
-#define LOW_POWER_NO_USE        -1 //系统此次低功耗传参无效,睡眠时间由蓝牙决定(使用时注意蓝牙是否打开)
+#define LOW_POWER_SET_MAX_TIME  4000000l  //睡眠时间,usec
+#define LOW_POWER_KEEP          -2        //进入低功耗并一直保持不退出
+#define LOW_POWER_NO_USE        -1        //系统此次低功耗传参无效,睡眠时间由蓝牙决定(使用时注意蓝牙是否打开)
+
 
 #if (TCFG_LOWPOWER_PATTERN == SOFT_BY_POWER_MODE)
 #define LOW_POWER_SOFTOFF_BT_EXIT_TIME  100 //ms, 基带关闭ADV/SCAN

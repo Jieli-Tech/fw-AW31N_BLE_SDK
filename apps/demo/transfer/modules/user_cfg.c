@@ -15,6 +15,7 @@
 #include "audio_config.h"
 #endif /*CONFIG_LITE_AUDIO*/
 
+
 #define LOG_TAG_CONST       USER_CFG
 #define LOG_TAG             "[USER_CFG]"
 #define LOG_ERROR_ENABLE
@@ -25,7 +26,7 @@
 /* #include "debug.h" */
 #include "log.h"
 
-/*对应bt的tx功率挡位,SDK默认使用接近 0 dbm 功率挡位*/
+/*对应bt的tx功率挡位,SDK默认使用接近 0 dbm 功率挡位,参考值详见接口 bt_max_pwr_set 说明*/
 #define  SET_BLE_TX_POWER_LEVEL        (2)//0dBm
 
 void lp_winsize_init(struct lp_ws_t *lp);
@@ -141,7 +142,7 @@ void bt_set_mac_addr(u8 *addr)
     memcpy(bt_cfg.mac_addr, addr, 6);
 }
 
-static u8 bt_mac_addr_for_testbox[6] = {0};
+
 void bt_get_vm_mac_addr(u8 *addr)
 {
 #if 0
@@ -153,8 +154,7 @@ void bt_get_vm_mac_addr(u8 *addr)
         syscfg_write(CFG_BT_MAC_ADDR, addr, 6);
     }
 #else
-
-    memcpy(addr, bt_mac_addr_for_testbox, 6);
+    memcpy(addr, bt_get_mac_addr(), 6);
 #endif
 }
 
@@ -204,7 +204,6 @@ extern u8 key_table[3][10];
 #define USE_CONFIG_AUTO_OFF_SETTING          USE_CONFIG_BIN_FILE        //自动关机时间设置
 #define USE_CONFIG_COMBINE_VOL_SETTING       1					        //联合音量读配置
 
-
 void cfg_file_parse(u8 idx)
 {
     u8 tmp[128] = {0};
@@ -216,11 +215,11 @@ void cfg_file_parse(u8 idx)
     /*                      CFG READ IN cfg_tools.bin                        */
     /*************************************************************************/
     //-----------------------------CFG_COMBINE_VOL----------------------------------//
-#ifdef TCFG_AUDIO_ENABLE
-#if (defined SYS_VOL_TYPE && SYS_VOL_TYPE == VOL_TYPE_AD)
+#if 0//TCFG_AUDIO_ENABLE
+#if (defined SYS_VOL_TYPE && (SYS_VOL_TYPE == VOL_TYPE_AD))
     audio_combined_vol_init(USE_CONFIG_COMBINE_VOL_SETTING);
 #endif/*SYS_VOL_TYPE*/
-#endif /*TCFG_AUDIO_ENABLE */
+#endif /*TCFG_AUDIO_ENABLE*/
 
     //-----------------------------CFG_BT_NAME--------------------------------------//
     //TODO
@@ -250,11 +249,8 @@ void cfg_file_parse(u8 idx)
         app_var.rf_power = 10;
     }
     bt_max_pwr_set(app_var.rf_power, 5, 8, SET_BLE_TX_POWER_LEVEL);
-    log_info("rf config:%d\n", app_var.rf_power);
+    log_info("rf config:%d\n", SET_BLE_TX_POWER_LEVEL);
 #endif
-
-    app_var.music_volume = 14;
-    app_var.wtone_volume = 14;
 
 
 #if (USE_CONFIG_CHARGE_SETTING) && (TCFG_CHARGE_ENABLE)
@@ -310,7 +306,7 @@ void cfg_file_parse(u8 idx)
     }
     log_info("auto_off_time:%d\n", app_var.auto_off_time)
 #else
-    app_var.auto_off_time = 0; //TCFG_AUTO_SHUT_DOWN_TIME;
+    app_var.auto_off_time =  0; //TCFG_AUTO_SHUT_DOWN_TIME;
     log_info("auto_off_time:%d\n", app_var.auto_off_time);
 #endif
 
@@ -320,32 +316,14 @@ void cfg_file_parse(u8 idx)
     u8 mac_buf[6];
     u8 mac_buf_tmp[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     u8 mac_buf_tmp2[6] = {0, 0, 0, 0, 0, 0};
-#if TCFG_USER_TWS_ENABLE
-    int len = syscfg_read(CFG_TWS_LOCAL_ADDR, bt_cfg.tws_local_addr, 6);
-    if (len != 6) {
-        get_random_number(bt_cfg.tws_local_addr, 6);
-        syscfg_write(CFG_TWS_LOCAL_ADDR, bt_cfg.tws_local_addr, 6);
-    }
-    log_debug("tws_local_mac:");
-    log_info_hexdump(bt_cfg.tws_local_addr, sizeof(bt_cfg.tws_local_addr));
 
-    ret = syscfg_read(CFG_TWS_COMMON_ADDR, mac_buf, 6);
-    if (ret != 6 || !memcmp(mac_buf, mac_buf_tmp, 6))
-#endif
-        do {
-            ret = syscfg_read(CFG_BT_MAC_ADDR, mac_buf, 6);
-            if ((ret != 6) || !memcmp(mac_buf, mac_buf_tmp, 6) || !memcmp(mac_buf, mac_buf_tmp2, 6)) {
-                get_random_number(mac_buf, 6);
-                syscfg_write(CFG_BT_MAC_ADDR, mac_buf, 6);
-            }
-        } while (0);
-
-    syscfg_read(CFG_BT_MAC_ADDR, bt_mac_addr_for_testbox, 6);
-    if (!memcmp(bt_mac_addr_for_testbox, mac_buf_tmp, 6)) {
-        get_random_number(bt_mac_addr_for_testbox, 6);
-        syscfg_write(CFG_BT_MAC_ADDR, bt_mac_addr_for_testbox, 6);
-        log_info(">>>init mac addr!!!\n");
-    }
+    do {
+        ret = syscfg_read(CFG_BT_MAC_ADDR, mac_buf, 6);
+        if ((ret != 6) || !memcmp(mac_buf, mac_buf_tmp, 6) || !memcmp(mac_buf, mac_buf_tmp2, 6)) {
+            get_random_number(mac_buf, 6);
+            syscfg_write(CFG_BT_MAC_ADDR, mac_buf, 6);
+        }
+    } while (0);
 
     log_info("mac:");
     log_info_hexdump(mac_buf, sizeof(mac_buf));

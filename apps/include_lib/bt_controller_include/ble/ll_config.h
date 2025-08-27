@@ -204,10 +204,25 @@ extern const int config_btctler_le_master_multilink;
 #define VENDOR_BB_RX_PAYLOAD_LEN(x)     ((x) << 18) /* 7bit */
 #define VENDOR_BB_PIS_TX_PAYLOAD_LEN(x) ((x) << 25) /* 7bit*/
 
+/* -------------------Customization CONTROL */
+#define VENDOR_PHY_ADV_EN                BIT(0)
+#define VENDOR_PHY_SCAN_EN               BIT(1)
+
 extern u32 config_vendor_le_bb;
+extern u32 config_phy_code_le_bb;
 extern const int config_rf_oob;
 extern const u32 config_low_power_timeout_reserved;
+extern const int config_btctler_coded_type;
 /*-----------------------------------------------------------*/
+
+/*
+ *-------------------LE Vendor baseband fixed slot CONTROL
+ */
+#define BB_NORMAL_CONN_NONSET_FIXED_SLOT        0
+#define BB_CONN_INTERVAL_2SLOT                  1
+#define BB_CONN_INTERVAL_4SLOT                  2
+/*-----------------------------------------------------------*/
+
 
 /*
  *-------------------LE close wait

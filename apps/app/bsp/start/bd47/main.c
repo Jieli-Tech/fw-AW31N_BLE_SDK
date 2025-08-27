@@ -24,6 +24,7 @@
 #include "common.h"
 #include "gpio.h"
 #include "clock.h"
+#include "clock_hw.h"
 #include "maskrom.h"
 #include "init.h"
 #include "asm/power_interface.h"
@@ -52,6 +53,7 @@ extern u8 g_testbox_uart_up_flag;
 void boot_osc_1pin_init();
 
 
+extern u8 osc_1pin_sta;
 __attribute__((noreturn))
 void c_main(int cfg_addr)
 {
@@ -60,39 +62,37 @@ void c_main(int cfg_addr)
     mask_argv.exp_hook = (void *)exception_analyze;
     mask_init(&mask_argv);
     efuse_init();
+    sys_timer_init();
 
 #ifdef CONFIG_SDK_DEBUG_LOG
     sdk_cpu_debug_main_init();
 #endif
 
     power_early_flowing();
+
     //放在时钟初始化前,时钟会读取vm数据
     boot_osc_1pin_init();
 
     board_init();
     tick_timer_init();
-#if TCFG_UART0_ENABLE
-    log_init(TCFG_UART0_BAUDRATE);
-#endif
-    log_info("1 hello word bd47\n");
-    /* mask_argv.local_irq_enable = NULL; */
-    /* mask_argv.local_irq_disable = NULL; */
-    /* mask_argv.flt = NULL; */
-
 
     HWI_Install(1, (u32)exception_irq_handler, 7) ;
     emu_init();
 
     clk_voltage_init(TCFG_CLOCK_MODE, DVDD_VOL_129V);
-    clk_early_init(TCFG_CLOCK_SYS_PLL_SRC, TCFG_CLOCK_OSC_HZ, TCFG_CLOCK_SYS_PLL_HZ);
-    wdt_init(WDT_8S);
 
-    //test: pmu_oe
-    /* JL_WLA->WLA_CON10 |= BIT(15); */
-    //reinit uart io
-    /*JL_OMAP->PA5_OUT = 0;*/
-    /*JL_PORTA->DIR &= ~BIT(6);*/
-    /*JL_OMAP->PA6_OUT = FO_UART1_TX;*/
+#if CONFIG_BLE_CONNECT_SLOT
+    clk_early_init(TCFG_CLOCK_SYS_PLL_SRC, TCFG_CLOCK_OSC_HZ, 160000000);//低延时模式默认配置160M
+#else
+    clk_early_init(TCFG_CLOCK_SYS_PLL_SRC, TCFG_CLOCK_OSC_HZ, TCFG_CLOCK_SYS_PLL_HZ);
+#endif
+
+#if TCFG_UART0_ENABLE
+    log_init(TCFG_UART0_BAUDRATE);
+#endif
+
+
+    wdt_init(WDT_8S);
 
     log_info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     log_info("       bd47 setup %s %s", __DATE__, __TIME__);
@@ -100,12 +100,15 @@ void c_main(int cfg_addr)
     clock_dump();
     efuse_dump();
 
-    sys_timer_init();
-
     board_power_init();
 
     system_init();
     power_later_flowing();
+
+    //osc 牵引失败
+    if ((config_xosc_1pin_en) && (get_osc_1pin_sta() == 0)) { //牵引起振失败
+        power_set_soft_poweroff();
+    }
 
     app_main();
     wdt_close();
@@ -113,43 +116,6 @@ void c_main(int cfg_addr)
         ;
     }
 
-#if 0
-    wdt_close();
-
-    mask_init_for_app();
-    irq_init();
-    local_irq_disable();
-    local_irq_enable();
-
-    //上电初始化所有IO
-    port_init();
-
-    log_init(TCFG_UART0_BAUDRATE);
-
-    pll_sel(TCFG_PLL_SEL, TCFG_PLL_DIV, TCFG_HSB_DIV);
-
-    dump_clock_info();
-
-    debug_init();
-
-    wdt_init(WDT_8S);
-
-    P3_PINR_CON &= ~BIT(0); //关闭长按复位
-
-    /* gpio_clk_out(IO_PORTC_00, CLK_OUT_HSB); */
-
-    log_info("time & date %s %s \n  OTP c_main\n", __TIME__, __DATE__);
-
-    power_reset_source_dump();
-    power_wakeup_reason_dump();
-    sys_power_init();
-
-    system_init();
-    app();
-    while (1) {
-        wdt_clear();
-    }
-#endif
 }
 
 #if 0   //蓝牙底层状态io debug

@@ -26,7 +26,7 @@
 
 //host 和 btctrl 消息池大小
 #define CONFIG_BT_API_MSG_BUFSIZE         (0xa0)//api cmd 消息池大小
-#define CONFIG_HOST_MSG_BUFSIZE           (0x200)//host 消息池大小
+#define CONFIG_HOST_MSG_BUFSIZE           (0x100)//0x200,host 消息池大小
 #define CONFIG_CTRL_MSG_BUFSIZE           (0x100)//btctrl 消息池大小
 #define CFG_BT_MSG_BUFSZIE                (CONFIG_BT_API_MSG_BUFSIZE + CONFIG_HOST_MSG_BUFSIZE + CONFIG_CTRL_MSG_BUFSIZE)
 
@@ -45,7 +45,7 @@
 #define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0x660)  //nk malloc堆的大小
-#define BT_NV_RAM_SIZE                    (0xEC0)  //nv malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xCC0)  //nv malloc堆的大小
 
 //配置双模同名字，同地址
 #define CONFIG_APP_SPP_LE_TO_IDLE          0 //SPP_AND_LE To IDLE Use
@@ -68,7 +68,15 @@
 #endif//#if CONFIG_BT_GATT_CLIENT_NUM
 
 #elif CONFIG_APP_DONGLE
-#define CONFIG_BLE_CONNECT_SLOT            0 //BLE高回报率设置, 支持私有协议,所有周期单位为us,适配1k回报率鼠标需要开此宏
+#define CONFIG_BLE_CONNECT_SLOT             0 //BLE高回报率设置, 支持私有协议,所有周期单位为us,适配1k回报率鼠标需要开此宏
+
+#if CONFIG_BLE_CONNECT_SLOT
+#define HIGH_REPORT_RATE_1MS                1   //1ms,support dual conn
+#define HIGH_REPORT_RATE_2SLOT              0   //2slot,1.25ms,support dual conn
+#define HIGH_REPORT_RATE_4SLOT              0   //4slot,2.5ms,support dual conn
+#define HIGH_REPORT_RATE_500US              0   //500us,not support dual conn
+#endif
+
 
 #define CONFIG_BT_GATT_CLIENT_NUM          1 // range(1~2)
 #define CONFIG_BT_GATT_SERVER_NUM          0
@@ -88,9 +96,9 @@
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0x660 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
 #if (CONFIG_BT_GATT_CONNECTION_NUM > 1)
-#define BT_NV_RAM_SIZE                    (0xFC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE)  //nv malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xDC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE)  //nv malloc堆的大小
 #else
-#define BT_NV_RAM_SIZE                    (0xFC0)  //nv malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xDC0)  //nv malloc堆的大小
 #endif
 
 
@@ -129,7 +137,7 @@
 #if CONFIG_BLE_CONNECT_SLOT
 #define SYS_STACK_SIZE                    (0x900)  //中断堆栈大小
 #else
-#define SYS_STACK_SIZE                    (0x600)  //中断堆栈大小
+#define SYS_STACK_SIZE                    (0x700)  //中断堆栈大小
 #endif
 
 #define USR_STACK_SIZE                    (0x500)  //用户堆栈大小
@@ -137,9 +145,9 @@
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0x660 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
 #if ((CONFIG_BT_GATT_CONNECTION_NUM + CONFIG_BT_NOCONN_ADV_NUM + CONFIG_BT_NOCONN_SCAN_NUM) > 1)
-#define BT_NV_RAM_SIZE                    (0xEC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE + CONFIG_BT_EXT_ADV_LINK_SIZE + CONFIG_BT_EXT_SCAN_LINK_SIZE)  //nv malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xCC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE + CONFIG_BT_EXT_ADV_LINK_SIZE + CONFIG_BT_EXT_SCAN_LINK_SIZE)  //nv malloc堆的大小
 #else
-#define BT_NV_RAM_SIZE                    (0xEC0)  //nv malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xCC0)  //nv malloc堆的大小
 #endif
 #define CONFIG_BT_GATT_COMMON_ENABLE       1
 #define CONFIG_BT_SM_SUPPORT_ENABLE        0
@@ -170,9 +178,9 @@
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0x660 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
 #if (CONFIG_BT_GATT_CONNECTION_NUM > 1)
-#define BT_NV_RAM_SIZE                    (0xEC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE)  //nv malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xCC0 + CONFIG_BT_EXT_CONNECT_LINK_SIZE)  //nv malloc堆的大小
 #else
-#define BT_NV_RAM_SIZE                    (0xEC0)  //nv malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xCC0)  //nv malloc堆的大小
 #endif
 
 
@@ -208,8 +216,8 @@
 #define TCFG_USER_BLE_ENABLE              0
 
 //SDK 应用内存分配,谨慎修改
-#define SYS_STACK_SIZE                    (0x600)  //中断堆栈大小
-#define USR_STACK_SIZE                    (0x500)  //用户堆栈大小
+#define SYS_STACK_SIZE                    (0x500)  //中断堆栈大小
+#define USR_STACK_SIZE                    (0x480)  //用户堆栈大小
 #define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0)  //nk malloc堆的大小
@@ -394,6 +402,11 @@
 #else
 #define RCSP_BTMATE_EN                    0
 #define UPDATE_MD5_ENABLE                 0
+#endif
+
+#include "asm/power/power_defined.h"
+#if TCFG_CLOCK_OSC_1PIN_EN && TCFG_LOWPOWER_LOWPOWER_SEL
+#error "CLOCK_OSC_1PIN_EN and LOWPOWER_LOWPOWER_SEL NO MATCH"
 #endif
 
 /*

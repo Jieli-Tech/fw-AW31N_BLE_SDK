@@ -120,6 +120,9 @@
 #if (LOW_CONNECT_INTERVAL_TEST == 0)
 #define TCFG_IOKEY_MOUSE_SWITCH_PORT		        IO_PORTA_00
 #endif
+
+#define TCFG_POWER_ON_NEED_KEY		        0                //是否需要长按按键开机配置
+
 //*********************************************************************************//
 //                                 matrix key 配置                                 //
 //*********************************************************************************//
@@ -260,6 +263,7 @@
 //*********************************************************************************//
 //                                  时钟配置                                       //
 //*********************************************************************************//
+#define CONFIG_PLL_SOURCE_USING_LRC             0       			//PLL时钟源选择 1:LRC 0:OSC
 #define TCFG_CLOCK_SYS_PLL_SRC			   PLL_REF_XOSC//系统时钟源选择
 #define TCFG_CLOCK_SYS_PLL_HZ			   192000000                     //系统时钟设置
 #define TCFG_CLOCK_OSC_HZ				   24000000                     //外界晶振频率设置
@@ -267,7 +271,7 @@
 /* #define TCFG_CLOCK_MODE                 CLOCK_MODE_USR//CLOCK_MODE_ADAPTIVE */
 #define TCFG_CLOCK_MODE                    CLOCK_MODE_ADAPTIVE
 #define TCFG_CLOCK_SYS_HZ                  160000000
-#define TCFG_CLOCK_LSB_HZ                  48000000
+#define TCFG_CLOCK_LSB_HZ                  80000000 //sys配置160M, lsb需要配置80M
 
 //*********************************************************************************//
 //                                供电模式配置                                     //
@@ -335,8 +339,8 @@
 #define TCFG_POWER_MODE_QUIET_ENABLE        0
 #define TCFG_POWER_MODE_QUIET_ENABLE        0
 
-#define SUPPORT_TEST_BOX_BLE_MASTER_TEST_EN	0
-
+#define SUPPORT_TEST_BOX_BLE_MASTER_TEST_EN	    0
+#define SUPPORT_TEST_BOX_BLE_CONNECT_TEST_EN	0
 #endif
 #endif
 

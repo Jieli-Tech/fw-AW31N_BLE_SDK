@@ -39,7 +39,7 @@
 
 #define RSP_TX_HEAD               0xff
 
-#define MULTI_SCAN_LOG_ENABLE     0
+#define MULTI_SCAN_LOG_ENABLE     1
 
 static uint8_t multi_scan_buffer[ADV_RSP_PACKET_MAX * 2];
 static uint8_t multi_scan_len = 0;
@@ -135,8 +135,13 @@ void multi_scan_report_handle(adv_report_t *report_pt, uint16_t len)
 
     //for debug
 #if MULTI_SCAN_LOG_ENABLE
-    log_info("rssi:%d,packet_num:%u\n", report_pt->rssi, ++scan_packet_num);
-    multi_scan_data_handle(multi_scan_buffer, multi_scan_len);
+    static int cnt = 0;
+    cnt++;
+    if (cnt % 500 == 0) {
+        log_info("rssi:%d,packet_num:%u\n", report_pt->rssi, ++scan_packet_num);
+        multi_scan_data_handle(multi_scan_buffer, multi_scan_len);
+        cnt = 0;
+    }
 #endif
     multi_scan_len = 0;
 }

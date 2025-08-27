@@ -92,9 +92,9 @@ static void dongle_usb_start()
     //second device
     log_info("register channel 2");
 #if CONFIG_HIDKEY_REPORT_TEST & BIT(1)
-    usb_hid_set_second_repport_map(sHIDReportDesc_hidkey, sizeof(sHIDReportDesc_hidkey));
+    //usb_hid_set_second_repport_map(sHIDReportDesc_hidkey, sizeof(sHIDReportDesc_hidkey));
 #else
-    usb_hid_set_second_repport_map(sHIDReportDesc_stand_keyboard2, sizeof(sHIDReportDesc_stand_keyboard2));
+    //usb_hid_set_second_repport_map(sHIDReportDesc_stand_keyboard2, sizeof(sHIDReportDesc_stand_keyboard2));
 #endif
 #endif
 
@@ -132,6 +132,14 @@ static void dongle_app_start()
     log_info("---------usb + dongle start demo-------\n");
     log_info("=======================================\n");
     log_info("app_file: %s", __FILE__);
+
+#if CONFIG_BLE_CONNECT_SLOT
+    clk_set("sys", 160000000);//低延时模式默认配置160M
+    clk_set("lsb", 80000000);//HSB: 160M - LSB: 80M
+#else
+    clk_set("sys", TCFG_CLOCK_SYS_HZ);
+    clk_set("lsb", TCFG_CLOCK_LSB_HZ);
+#endif
 
     clock_bt_init();
     dongle_bt_start();
@@ -202,8 +210,10 @@ int dongle_second_ble_hid_input_handler(uint8_t *packet, uint16_t size)
     /* put_buf(packet, size); */
 
     /* putchar('#'); */
+
 #if (TCFG_PC_ENABLE) && (CONFIG_BT_GATT_CLIENT_NUM == 2)
-    return hid_send_second_data(packet, size);
+    //return hid_send_second_data(packet, size);
+    return 0;
 #else
     log_info("chl2 disable!!!\n");
     return 0;

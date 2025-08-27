@@ -6,7 +6,7 @@
 #include "OMSensor_manage.h"
 #include "code_switch.h"
 #include "app_power_mg.h"
-#include "adc_api.h"
+#include "gpadc.h"
 #include "key_drv_io.h"
 
 #define LOG_TAG_CONST       BOARD
@@ -23,7 +23,9 @@ void mouse_send_data_timer_deinit(void);
 void board_init()
 {
     // 按键初始化
+#if (KEY_AD_EN || TCFG_SYS_LVD_EN)
     adc_init();
+#endif
 #if (KEY_IO_EN || KEY_AD_EN || KEY_MATRIX_EN)
     key_init();
 #endif
@@ -224,6 +226,21 @@ void key_wakeup_init()
 }
 
 /************************** IO WAKE UP CONFIG****************************/
+
+u8 get_power_on_status(void)
+{
+#if KEY_IO_EN
+    const struct iokey_port *power_io_list = NULL;
+    power_io_list = iokey_data.port;
+
+    if (iokey_data.enable) {
+        if (gpio_read(power_io_list->key_type.one_io.port) == power_io_list->connect_way) {
+            return 1;
+        }
+    }
+#endif
+    return 0;
+}
 
 #endif
 

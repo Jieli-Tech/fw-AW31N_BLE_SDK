@@ -208,6 +208,36 @@ static void trans_check_remote_result(uint16_t con_handle, remote_type_e remote_
 
 /*************************************************************************************************/
 /*!
+ *  \brief      推送消息给app
+ *
+ *  \param      [in]
+ *
+ *  \return
+ *
+ *  \note
+ */
+/*************************************************************************************************/
+static void trans_event_post(u32 arg_type, u8 priv_event, u8 *args, u32 value)
+{
+    /* struct sys_event e; */
+    struct sys_event *e = event_pool_alloc();
+    if (e == NULL) {
+        log_info("Memory allocation failed for sys_event");
+        return;
+    }
+
+    e->type = SYS_BT_EVENT;
+    e->arg  = (void *)arg_type;
+    e->u.bt.event = priv_event;
+    if (args) {
+        memcpy(e->u.bt.args, args, 7);
+    }
+    e->u.bt.value = value;
+    main_application_operation_event(NULL, e);
+}
+
+/*************************************************************************************************/
+/*!
  *  \brief      处理gatt 返回的事件（hci && gatt）
  *
  *  \param      [in]
@@ -314,6 +344,12 @@ static int trans_event_packet_handler(int event, uint8_t *packet, uint16_t size,
         r_printf("input_key:%6u\n", key);
     }
     break;
+
+    case GATT_COMM_EVENT_VENDOR_REMOTE_TEST:
+        u8 testbox_connect_status = packet[0];
+        log_info("testbox connect status:%02x", testbox_connect_status);
+        trans_event_post(SYS_BT_EVENT_TYPE_HCI_STATUS,  HCI_EVENT_VENDOR_REMOTE_TEST, NULL, testbox_connect_status);
+        break;
 
     default:
         break;

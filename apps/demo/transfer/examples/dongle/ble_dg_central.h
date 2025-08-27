@@ -6,12 +6,11 @@
 
 #if (CONFIG_APP_DONGLE)
 
-#if CONFIG_BLE_HIGH_SPEED
-//ATT发送的包长,    note: 23 <=need >= MTU
-#define ATT_LOCAL_MTU_SIZE        (247)
-#else
-#define ATT_LOCAL_MTU_SIZE        (64)
-#endif
+enum {
+    RF_NORMAL_CONN_NOTFIXED = 0,//正常连接,不固定slot
+    RF_CONN_FIXED_2SLOT, //高回报率模式，固定2slot
+    RF_CONN_FIXED_4SLOT, //高回报率模式，固定4slot
+};
 
 //ATT缓存的buffer支持缓存数据包个数
 #if RCSP_BTMATE_EN
@@ -24,8 +23,14 @@
 #define ATT_PACKET_NUMS_MAX       (2 * 8 * CONFIG_BT_GATT_CLIENT_NUM)
 #endif
 #else
+#if CONFIG_BLE_HIGH_SPEED
+//ATT发送的包长,    note: 23 <=need >= MTU
+#define ATT_LOCAL_MTU_SIZE        (247)
+#define ATT_PACKET_NUMS_MAX       (5)
+#else
 #define ATT_LOCAL_MTU_SIZE        (64)
 #define ATT_PACKET_NUMS_MAX       (10)
+#endif
 #endif
 
 //ATT缓存的buffer大小,  note: need >= 23,可修改
@@ -39,16 +44,25 @@
 //搜索 周期大小
 #define SET_SCAN_INTERVAL   ADV_SCAN_MS(24) // unit: 0.625ms
 //搜索 窗口大小
-#define SET_SCAN_WINDOW     ADV_SCAN_MS(8)  // unit: 0.625ms ,<= SET_SCAN_INTERVAL
+#define SET_SCAN_WINDOW     ADV_SCAN_MS(24)  // unit: 0.625ms ,<= SET_SCAN_INTERVAL
 
 //连接周期
 #if CONFIG_BLE_CONNECT_SLOT
-#define BASE_INTERVAL_MIN   (1000) // 最小的interval
+#if HIGH_REPORT_RATE_2SLOT
+#define BASE_INTERVAL_MIN   (1250) // 1.25ms
+#elif HIGH_REPORT_RATE_4SLOT
+#define BASE_INTERVAL_MIN   (2500) // 2.5ms
+#elif HIGH_REPORT_RATE_500US
+#define BASE_INTERVAL_MIN   (500) // 500us
+#else
+#define BASE_INTERVAL_MIN   (1000)  // 1ms
+#endif
 #define SET_CONN_INTERVAL   (BASE_INTERVAL_MIN) //(unit:us)
 #else
 #define BASE_INTERVAL_MIN   (6)//最小的interval
 #define SET_CONN_INTERVAL   (BASE_INTERVAL_MIN*3) //(unit:1.25ms)
 #endif
+
 //连接latency
 #define SET_CONN_LATENCY    0  //(unit:conn_interval)
 //连接超时

@@ -146,6 +146,7 @@ void vddiom_vol_sel(enum VDDIOM_VOL vol);
 enum VDDIOM_VOL get_vddiom_vol_sel();
 void vddiow_vol_sel(enum VDDIOW_VOL vol);
 enum VDDIOW_VOL get_vddiow_vol_sel();
+u32 get_vddiom_vol();
 
 //
 //

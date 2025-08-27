@@ -58,6 +58,7 @@ typedef enum {
     //type:ble slave
     GATT_COMM_EVENT_CONNECTION_UPDATE_REQUEST_RESULT = 0x30,/*请求更新参数，反馈结果*/
     GATT_COMM_EVENT_DIRECT_ADV_TIMEOUT,/*定向广播超时,未被连上*/
+    GATT_COMM_EVENT_VENDOR_REMOTE_TEST, /*测试盒连接消息*/
 
     //type:gatt server
     GATT_COMM_EVENT_SERVER_STATE = 0x40,/*状态变化*/
@@ -79,6 +80,8 @@ typedef enum {
 
     /*======slave + server, sm*/
     GATT_COMM_EVENT_SM_PASSKEY_INPUT = 0x90,/*输入key*/
+    GATT_COMM_EVENT_SM_PAIR_PROCESS,
+    GATT_COMM_EVENT_SM_KEYPRESS_NOTIFICATION,
 
 } gatt_comm_event_e;
 

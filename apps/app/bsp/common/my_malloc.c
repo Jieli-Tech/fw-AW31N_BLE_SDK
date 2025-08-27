@@ -82,7 +82,7 @@ int my_get_free_size(void)
 void my_malloc_init(void)
 {
 #if MY_MALLOC_SELECT
-    u32 len = (u32)&_free_end[0] - (u32)&_free_start[0]  + 1;
+    u32 len = (u32)&_free_end[0] - (u32)&_free_start[0];
     log_info(" HEAP----: 0x%x; 0x%x\n", (u32)&_free_end[0], (u32)&_free_start[0]);
     ASSERT(len >= 512, "my_malloc limit >=512");
     memset((void *)&_free_start[0], 0, len);

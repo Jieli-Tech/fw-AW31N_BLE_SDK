@@ -171,6 +171,13 @@ static const target_uuid_t  dg_central_search_uuid_table[] = {
         .read_report_reference = 1,
     },
 
+    {
+        .services_uuid16 = 0xae40,
+        .characteristic_uuid16 = 0x2a41,
+        .opt_type = ATT_PROPERTY_WRITE_WITHOUT_RESPONSE,
+        .read_report_reference = 1,
+    },
+
 #if RCSP_BTMATE_EN //确保远端设备是否支持ota
     {
         .services_uuid16 = 0xae00,
@@ -200,9 +207,9 @@ static const target_uuid_t  dg_central_search_uuid_table[] = {
 };
 
 //------!!!!注意:如果是OTA升级的话,这里名字修改还需要去ota_dg_central.c修改dg_ana_remoter_name1/2
-static const uint8_t dg_central_test_remoter_name1[] = "Lenovo Go Multi-Device Mouse";//键盘
+static const uint8_t dg_central_test_remoter_name1[] = "AW31N_MOUSE_DUAL(BLE)";//3模鼠标
 /* static const uint8_t dg_central_test_remoter_name2[] = "AC897N_MX(BLE)";//鼠标 */
-static const uint8_t dg_central_test_remoter_name2[] = "AW31N_MOUSE_DUAL(BLE)";//鼠标
+static const uint8_t dg_central_test_remoter_name2[] = "LOW_LATENCY(BLE)";//低延时从机
 static const client_match_cfg_t dg_central_match_device_table[] = {
     {
         .create_conn_mode = BIT(CLI_CREAT_BY_NAME),
@@ -611,6 +618,60 @@ static void dg_central_state_to_user(uint8_t state, uint8_t reason)
 }
 
 #if CONFIG_BLE_CONNECT_SLOT
+void client_send_data_to_server(void *priv_hw, uint8_t hw_state)
+{
+    /* putchar('b'); */
+    if (dg_central_bt_connected != DG_SEARCH_PROFILE_COMPLETE) {
+        return;
+    }
+    static u32 cnt = 0;
+    cnt++;
+    if (cnt % 1000 == 0) { // 如果刚连接，就撞上发数据，会有问题，最后att完成时候__do_operate_search_handle做个标志
+        /* log_info("%s[con:0x%x write:0x%x]", __func__, dg_central_conn_handle, dg_central_write_handle); */
+        static u8 data[10] = {0};
+        int len = sizeof(data);
+        memset(data, ++data[0], len); // 填充测试数据
+        dg_central_write_handle = 0x004c;
+        if (1) { //24g模式
+            hw_send_packet_fast(dg_central_write_handle, priv_hw, data, len, 27, hw_state);
+        } else { //ble模式,有问题，不能用
+            if (dg_central_conn_handle && dg_central_write_handle) {
+                ble_comm_att_send_data(dg_central_conn_handle, dg_central_write_handle, data, len, ATT_OP_WRITE_WITHOUT_RESPOND);
+            }
+        }
+        cnt = 0;
+    }
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief      1. 基带接口,用于高回报率鼠标,需搭配aw31 mouse_dual使用;
+                2. 底层有事件触发后回调直接来上层拿数据发送,函数名不可修改，无需调用;
+                3. 不可做耗时操作（需要在us级）;
+                4. 仅在2.4g模式使用;
+ *
+ *  \param      [in] NUll
+ *
+ *  \return
+ *
+ *  \note       1. 中断回调及所加函数中不能添加打印, 会影响cpu执行效率.
+                   ps: 如加调试打印, 结束后请注释.
+ */
+/*************************************************************************************************/
+void ble_event_irq_hook(void *priv_hw, void *link, uint8_t hw_state, uint8_t flag)
+{
+    /* putchar('b'); */
+    /* log_info("%s[flag:%d]", __func__, flag); */
+    // 等待压包完成后再发送下一包
+    if (flag == 1) {
+        return;
+    }
+
+#if ((CONFIG_BT_GATT_CLIENT_NUM == 1) && (HIGH_REPORT_RATE_1MS == 1))  //1ms单连接支持下行发数.
+    client_send_data_to_server(priv_hw, hw_state);
+#endif
+}
+
 /*************************************************************************************************/
 /*!
  *  \brief      1. 基带接口接收数据接口
@@ -622,11 +683,21 @@ static void dg_central_state_to_user(uint8_t state, uint8_t reason)
  *
  *  \return
  *
- *  \note
+ *  \note       1. 中断回调及所加函数中不能添加打印, 会影响cpu执行效率.
+                   ps: 如加调试打印, 结束后请注释.
  */
 /*************************************************************************************************/
 bool ll_conn_rx_acl_hook_get(const uint8_t *const data, size_t len)
 {
+    /*
+    static u32 cnt = 0;
+    cnt++;
+    if (cnt % 1000 == 0) {
+        log_info("%s[cnt:%d len:%d]", __func__, cnt, len);
+        put_buf(data, len);
+    }
+    */
+
     uint8_t hid_send_packet[MOUSE_USB_PACKET_LEN];
     //demo code
     uint16_t conn_handle = little_endian_read_16(data, 0) & 0x0fff;
@@ -650,12 +721,12 @@ bool ll_conn_rx_acl_hook_get(const uint8_t *const data, size_t len)
                 memcpy(&hid_send_packet[1], priv, MOUSE_USB_PACKET_LEN - 1);
                 /* log_info_hexdump(hid_send_packet, MOUSE_USB_PACKET_LEN); */
             } else {
-                log_info("clear length: %d", MOUSE_USB_PACKET_LEN - 1);
+                /* log_info("clear length: %d", MOUSE_USB_PACKET_LEN - 1); */
                 memset(&hid_send_packet[1], 0, MOUSE_USB_PACKET_LEN - 1); //发空包
             }
         } else if (usb_status_ret == USB_SLAVE_SUSPEND) {
             dg_central_wait_usb_wakeup = 0;
-            log_info("send remote_wakeup\n");
+            /* log_info("send remote_wakeup\n"); */
             usb_remote_wakeup(0);
 
             return true;
@@ -667,7 +738,7 @@ bool ll_conn_rx_acl_hook_get(const uint8_t *const data, size_t len)
 
         if (ret && dg_central_wait_usb_wakeup == 0) {
             dg_central_wait_usb_wakeup = 1;
-            log_info("send 0packet success!\n");
+            /* log_info("send 0packet success!\n"); */
         }
 
         return true;
@@ -687,14 +758,30 @@ bool ll_conn_rx_acl_hook_get(const uint8_t *const data, size_t len)
  *
  *  \return
  *
- *  \note
+ *  \note       1. 中断回调及所加函数中不能添加打印, 会影响cpu执行效率.
+                   ps: 如加调试打印, 结束后请注释.
  */
 /*************************************************************************************************/
 bool bb_le_rx_data_pdu_hook_get(void *priv, const u8 *data, u8 len)
 {
+    /*
+    static u32 cnt = 0;
+    cnt++;
+    if (cnt % 1000 == 0) {
+        log_info("%s[cnt:%d len:%d]", __func__, cnt, len);
+        put_buf(data, len);
+    }
+
+    if (len > 64) {
+        log_info("%s[cnt:%d len:%d]", __func__, cnt, len);
+        put_buf(data, len);
+        return true; // 测试收BLE长包
+    }
+
     if (config_le_sm_support_enable) {
         return false;
     }
+    */
 
     uint16_t conn_handle = ll_vendor_get_link_handle(priv);
     if (!conn_handle) {
@@ -741,6 +828,7 @@ bool bb_le_rx_data_pdu_hook_get(void *priv, const u8 *data, u8 len)
 /*************************************************************************************************/
 void dg_central_usb_status_handler(const usb_dev usb_id, usb_slave_status status)
 {
+    log_info("%s[status:%d]", __func__, status);
     /* PC进入睡眠模式，usb suspend，断开所有连接，只保留scan */
     if (status == USB_SLAVE_SUSPEND && dg_central_wait_usb_wakeup) {
         dg_central_disconnect_all();
@@ -1131,8 +1219,6 @@ static int dg_central_event_packet_handler(int event, uint8_t *packet, uint16_t 
         dg_central_state_to_user(packet[0], little_endian_read_16(packet, 0));
         break;
 
-        break;
-
     default:
         break;
     }
@@ -1231,6 +1317,13 @@ void bt_ble_init(void)
     // 设置高回报率模式
     ble_op_conn_us_unit(1);
     ble_op_conn_init_2Mphy(1);
+#if HIGH_REPORT_RATE_2SLOT
+    ble_op_conn_fixed_slot(RF_CONN_FIXED_2SLOT);
+#elif HIGH_REPORT_RATE_4SLOT
+    ble_op_conn_fixed_slot(RF_CONN_FIXED_4SLOT);
+#else
+    ble_op_conn_fixed_slot(RF_NORMAL_CONN_NOTFIXED);
+#endif
 #endif
 
     dg_central_init();

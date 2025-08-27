@@ -31,6 +31,9 @@
                                     PORT_FUNC_UART1_CTS, \
                                     (u32)-1, \
 
+#define  UART_NO_SUPPORT_DMA
+#define  UART_NO_SUPPORT_DMA_IDX 2
+
 
 #define CONFIG_ENABLE_UART_OS_SEM  0
 

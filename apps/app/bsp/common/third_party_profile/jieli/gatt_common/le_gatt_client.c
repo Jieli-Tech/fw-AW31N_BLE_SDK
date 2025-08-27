@@ -840,7 +840,7 @@ static bool __resolve_adv_report(adv_report_t *report_pt, u16 len)
         case HCI_EIR_DATATYPE_COMPLETE_LOCAL_NAME:
         case HCI_EIR_DATATYPE_SHORTENED_LOCAL_NAME:
             tmp32 = adv_data_pt[length - 1];
-            adv_data_pt[length - 1] = 0;;
+            adv_data_pt[length - 1] = 0;
             log_info("remoter_name:%s ,rssi:%d\n", adv_data_pt, report_pt->rssi);
             log_info_hexdump(report_pt->address, 6);
             adv_data_pt[length - 1] = tmp32;
@@ -919,7 +919,7 @@ just_creat:
 /*************************************************************************************************/
 static const struct create_conn_param_ext_t create_default_param_table = {
     .le_scan_interval = 24,
-    .le_scan_window = 8,
+    .le_scan_window = 24,
     .initiator_filter_policy = 0,
     .peer_address_type = 0,
     .peer_address = {0, 0, 0, 0, 0, 0},
@@ -1133,6 +1133,12 @@ void ble_gatt_client_sm_packet(uint8_t packet_type, uint16_t channel, uint8_t *p
             sm_passkey_input(event->con_handle, tmp32); /*update passkey*/
             break;
 
+        case SM_EVENT_KEYPRESS_NOTIFICATION:
+            uint16_t conn_handle = little_endian_read_16(packet, 2);
+            log_info("%04x->sm_keypress_notification: %02x\n", event->con_handle, event->data[0]);
+            __gatt_client_event_callback_handler(GATT_COMM_EVENT_SM_KEYPRESS_NOTIFICATION, (u8 *)&conn_handle, 2, event->data);
+            break;
+
         case SM_EVENT_PAIR_PROCESS:
             log_info("%04x->===Pair_process,sub= %02x\n", event->con_handle, event->data[0]);
             put_buf(event->data, 4);
@@ -1272,9 +1278,24 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                 __gatt_client_set_work_state(tmp_val[0], BLE_ST_CONNECT, 1);
                 __gatt_client_event_callback_handler(GATT_COMM_EVENT_CONNECTION_COMPLETE, (u8 *)tmp_val, 2, packet);
 
+#if CONFIG_BLE_CONNECT_SLOT
+                if (!config_le_sm_support_enable) {
+                    if (config_btctler_le_features & LE_DATA_PACKET_LENGTH_EXTENSION) {
+                        log_info(">>>>>>>>s1--request DLE, %04x\n", tmp_val[0]);
+                        ble_comm_set_connection_data_length(tmp_val[0], config_btctler_le_acl_packet_length, 2120);
+                    } else {
+                        __gatt_client_search_profile_start();
+                    }
+                } else {
+                    if (!ble_comm_need_wait_encryption(GATT_ROLE_CLIENT)) {
+                        __gatt_client_search_profile_start();
+                    }
+                }
+#else
                 if (!ble_comm_need_wait_encryption(GATT_ROLE_CLIENT)) {
                     __gatt_client_search_profile_start();
                 }
+#endif
             }
             break;
 
@@ -1290,6 +1311,7 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                 log_info("conn_update_timeout  = %d\n", hci_subevent_le_connection_update_complete_get_supervision_timeout(packet));
                 __gatt_client_event_callback_handler(GATT_COMM_EVENT_CONNECTION_UPDATE_COMPLETE, (u8 *)tmp_val, 2, packet);
 
+#if (CONFIG_BLE_CONNECT_SLOT == 0)
                 if (!config_le_sm_support_enable) {
                     if (config_btctler_le_features & LE_DATA_PACKET_LENGTH_EXTENSION) {
                         log_info(">>>>>>>>s1--request DLE, %04x\n", tmp_val[0]);
@@ -1307,6 +1329,7 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                         }
                     }
                 }
+#endif
             }
             break;
 
@@ -1317,6 +1340,7 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                 log_info("TX_Octets:%d, Time:%d\n", little_endian_read_16(packet, 5), little_endian_read_16(packet, 7));
                 log_info("RX_Octets:%d, Time:%d\n", little_endian_read_16(packet, 9), little_endian_read_16(packet, 11));
 
+#if (CONFIG_BLE_CONNECT_SLOT == 0)
                 if (config_btctler_le_features & LE_2M_PHY) {
                     log_info(">>>>>>>>s3--request 2M, %04x\n", tmp_val[0]);
                     ble_comm_set_connection_data_phy(tmp_val[0], CONN_SET_2M_PHY, CONN_SET_2M_PHY, CONN_SET_PHY_OPTIONS_NONE);
@@ -1333,7 +1357,11 @@ void ble_gatt_client_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
                         __gatt_client_search_profile_start();
                     }
                 }
-
+#else
+                if (!ble_comm_need_wait_encryption(GATT_ROLE_CLIENT)) {
+                    __gatt_client_search_profile_start();
+                }
+#endif
                 __gatt_client_event_callback_handler(GATT_COMM_EVENT_CONNECTION_DATA_LENGTH_CHANGE, (u8 *)tmp_val, 2, packet);
                 break;
 

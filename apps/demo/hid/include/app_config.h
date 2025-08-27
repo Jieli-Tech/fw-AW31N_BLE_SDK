@@ -22,6 +22,7 @@
 #define CONFIG_APP_KEYFOB                   0//自拍器,
 #define CONFIG_APP_MOUSE_SINGLE             0//单模鼠标（ble） 需搭配CONFIG_BOARD_AW313A_MOUSE_SINGLE板级
 #define CONFIG_APP_MOUSE_DUAL               0//三模鼠标（ble&2.4g&usb） 需搭配CONFIG_BOARD_AW313A_MOUSE板级
+#define CONFIG_APP_MOUSE_LOW_LATENCY        0//低延时从机，高回报率测试，需搭配CONFIG_BOARD_AW313A_MOUSE板级
 #define CONFIG_APP_KEYPAGE                  0//翻页器
 #define CONFIG_APP_REMOTE_CONTROL           0//遥控器，需搭配CONFIG_BOARD_AW31A_RC板级
 #define CONFIG_APP_IDLE                     0//IDLE
@@ -29,11 +30,10 @@
 //add in bt_ble.h
 #define CONFIG_HOGP_COMMON_ENABLE           1 //公共的hogp
 
-#if(!CONFIG_APP_IDLE)
-//SDK 应用内存分配,谨慎修改
-//host 和 btctrl 消息池大小
+#if(CONFIG_APP_MOUSE_DUAL) || (CONFIG_APP_MOUSE_LOW_LATENCY)
+
 #define CONFIG_BT_API_MSG_BUFSIZE         (0xa0)//api cmd 消息池大小
-#define CONFIG_HOST_MSG_BUFSIZE           (0x200)//host 消息池大小
+#define CONFIG_HOST_MSG_BUFSIZE           (0x100)//host 消息池大小
 #define CONFIG_CTRL_MSG_BUFSIZE           (0x100)//btctrl 消息池大小
 #define CFG_BT_MSG_BUFSZIE                (CONFIG_BT_API_MSG_BUFSIZE + CONFIG_HOST_MSG_BUFSIZE + CONFIG_CTRL_MSG_BUFSIZE)
 #define SYS_STACK_SIZE                    (0x800)  //中断堆栈大小
@@ -43,19 +43,34 @@
 #define BT_NK_RAM_SIZE                    (0x660 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
 #define BT_NV_RAM_SIZE                    (0xEC0)  //nv malloc堆的大小
 
-#else
+
+#elif(!CONFIG_APP_IDLE)
 //SDK 应用内存分配,谨慎修改
-#define SYS_STACK_SIZE                    (0x800)  //中断堆栈大小
+//host 和 btctrl 消息池大小
+#define CONFIG_BT_API_MSG_BUFSIZE         (0xa0)//api cmd 消息池大小
+#define CONFIG_HOST_MSG_BUFSIZE           (0x100)//host 消息池大小
+#define CONFIG_CTRL_MSG_BUFSIZE           (0x100)//btctrl 消息池大小
+#define CFG_BT_MSG_BUFSZIE                (CONFIG_BT_API_MSG_BUFSIZE + CONFIG_HOST_MSG_BUFSIZE + CONFIG_CTRL_MSG_BUFSIZE)
+#define SYS_STACK_SIZE                    (0x600)  //中断堆栈大小
 #define USR_STACK_SIZE                    (0x500)  //用户堆栈大小
 #define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
+//bt ram, no bt set 0
+#define BT_NK_RAM_SIZE                    (0x460 + CFG_BT_MSG_BUFSZIE)  //nk malloc堆的大小
+#define BT_NV_RAM_SIZE                    (0xDC0)  //nv malloc堆的大小
 
+#else
+//SDK 应用内存分配,谨慎修改
 #define CONFIG_BT_API_MSG_BUFSIZE         (0)//api cmd 消息池大小
 #define CONFIG_HOST_MSG_BUFSIZE           (0)//host 消息池大小
 #define CONFIG_CTRL_MSG_BUFSIZE           (0)//btctrl 消息池大小
-
+#define SYS_HEAP_SIZE                     (0x2C0)  //malloc堆的大小
 //bt ram, no bt set 0
 #define BT_NK_RAM_SIZE                    (0)  //nk malloc堆的大小
 #define BT_NV_RAM_SIZE                    (0)  //nv malloc堆的大小
+
+#define SYS_STACK_SIZE                    (0x500)  //中断堆栈大小
+#define USR_STACK_SIZE                    (0x480)  //用户堆栈大小
+
 #endif
 
 
@@ -63,7 +78,7 @@
 //蓝牙BLE配置
 #define DOUBLE_BT_SAME_NAME                0 //同名字
 #define CONFIG_BT_GATT_COMMON_ENABLE       1 //配置使用gatt公共模块
-#if CONFIG_APP_MOUSE_DUAL && LOW_CONNECT_INTERVAL_TEST
+#if CONFIG_APP_MOUSE_LOW_LATENCY
 #define CONFIG_BT_SM_SUPPORT_ENABLE        0 //配置是否支持加密
 #else
 #define CONFIG_BT_SM_SUPPORT_ENABLE        1 //配置是否支持加密
@@ -80,9 +95,9 @@
 2、more data打开会占用下个周期
 3、所有周期单位为us
 */
-#if CONFIG_APP_MOUSE_DUAL
+#if (CONFIG_APP_MOUSE_DUAL) || (CONFIG_APP_MOUSE_LOW_LATENCY)
 #define CONFIG_BLE_CONNECT_SLOT            1 //BLE高回报率设置, 支持私有协议
-#define TCFG_HID_AUTO_SHUTDOWN_TIME       (1 * 60)      //HID无操作自动关机(单位：秒)
+#define TCFG_HID_AUTO_SHUTDOWN_TIME       (0 * 60)      //HID无操作自动关机(单位：秒)
 #else
 #define CONFIG_BLE_CONNECT_SLOT            0 //BLE高回报率设置, 支持私有协议
 #define TCFG_HID_AUTO_SHUTDOWN_TIME       (0 * 60)      //HID无操作自动关机(单位：秒)
@@ -119,9 +134,6 @@
 
 #include "user_cfg_id.h"
 
-#define SYS_STACK_SIZE_ALL                SYS_STACK_SIZE
-#define USR_STACK_SIZE_ALL                USR_STACK_SIZE
-
 //需要app(BLE)升级要开一下宏定义
 #if CONFIG_APP_OTA_EN
 #define RCSP_BTMATE_EN                    1
@@ -136,8 +148,8 @@
 #if (CONFIG_BT_MODE == BT_NORMAL)
 //enable dut mode,need disable sleep(TCFG_LOWPOWER_LOWPOWER_SEL = 0)
 // DUT模式选择,二选一有且仅选一种
-#define TCFG_NORMAL_SET_DUT_MODE                  0 // DUT测试模式,默认上电进初始化
-#define TCFG_NORMAL_SET_DUT_MODE_API              0 // DUT api 模式,需要自行调用api测试,见ble_test_api.c
+#define TCFG_NORMAL_SET_DUT_MODE                 0 // DUT测试模式,默认上电进初始化
+#define TCFG_NORMAL_SET_DUT_MODE_API             0 // DUT api 模式,需要自行调用api测试,见ble_test_api.c
 #if TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API
 #undef  TCFG_LOWPOWER_LOWPOWER_SEL
 #define TCFG_LOWPOWER_LOWPOWER_SEL               0
@@ -229,6 +241,24 @@
 #undef TCFG_HID_AUTO_SHUTDOWN_TIME
 #define TCFG_HID_AUTO_SHUTDOWN_TIME             0
 
+#endif
+
+//需要app(BLE)升级
+#if CONFIG_APP_OTA_EN
+#define SYS_STACK_SIZE_ALL                (SYS_STACK_SIZE + 0x200)  //中断堆栈大小
+#define USR_STACK_SIZE_ALL                (USR_STACK_SIZE + 0)      //user堆栈大小
+#else
+#if TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API
+#define SYS_STACK_SIZE_ALL                SYS_STACK_SIZE + 0x32
+#else
+#define SYS_STACK_SIZE_ALL                SYS_STACK_SIZE
+#endif
+#define USR_STACK_SIZE_ALL                USR_STACK_SIZE
+#endif
+
+#include "asm/power/power_defined.h"
+#if TCFG_CLOCK_OSC_1PIN_EN && TCFG_LOWPOWER_LOWPOWER_SEL
+#error "CLOCK_OSC_1PIN_EN and LOWPOWER_LOWPOWER_SEL NO MATCH"
 #endif
 
 /*

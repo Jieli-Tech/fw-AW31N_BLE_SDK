@@ -34,7 +34,7 @@
 #include "user_cfg.h"
 #include "app_mouse_dual.h"
 #include "mouse_usb.h"
-#include "adc_api.h"
+#include "gpadc.h"
 #include "app_modules.h"
 
 #if(CONFIG_APP_MOUSE_DUAL)
@@ -106,6 +106,7 @@ void mouse_auto_shutdown_disable(void)
 /*************************************************************************************************/
 static void mouse_data_send(void *priv_hw, uint8_t hw_state, bool is_24g)
 {
+    /* log_info("%s[priv_hw:0x%x hw_state:0x%x]", __func__, priv_hw, hw_state); */
 #if TEST_MOUSE_SIMULATION_ENABLE
     mouse_send_data_test();
 #else
@@ -132,7 +133,22 @@ static void mouse_data_send(void *priv_hw, uint8_t hw_state, bool is_24g)
         }
 
         if (is_24g) {
+#if 1
             hw_send_packet_fast(HID_REPORT_ID_01_SEND_HANDLE, priv_hw, (uint8_t *)&mouse_send_packet, sizeof(mouse_packet_data_t), 27, hw_state);
+#else //如需进行长包短包间隔测试，可以运行下面发包逻辑
+            static u32 cnt = 0;
+            cnt++;
+            if (cnt % 1000 == 0) {
+                /* log_info("hw_send_packet_fast[cnt:%d len:%d]", cnt, sizeof(mouse_packet_data_t)); */
+                /* put_buf((uint8_t *)&mouse_send_packet, sizeof(mouse_packet_data_t)); */
+                static u8 data[64] = {0};
+                memset(data, ++data[0], sizeof(data));
+                //测试发BLE长包
+                hw_send_packet_fast(HID_REPORT_ID_01_SEND_HANDLE, priv_hw, data, sizeof(data), PACKET_DATE_LEN, hw_state);
+            } else {
+                hw_send_packet_fast(HID_REPORT_ID_01_SEND_HANDLE, priv_hw, (uint8_t *)&mouse_send_packet, sizeof(mouse_packet_data_t), 27, hw_state);
+            }
+#endif
         } else {
             if (mouse_info.mouse_hid_mode == HID_MODE_BLE) {
                 ble_hid_data_send(MOUSE_SEND_DATA_REPORT_ID, (uint8_t *)&mouse_send_packet, sizeof(mouse_send_packet));
@@ -167,6 +183,65 @@ static void mouse_data_send(void *priv_hw, uint8_t hw_state, bool is_24g)
 #if CONFIG_BLE_CONNECT_SLOT
 /*************************************************************************************************/
 /*!
+ *  \brief      1. 基带接口接收数据接口
+                2. 底层有事件触发后回调直接来上层拿数据发送,函数名不可修改，无需调用;
+                3. 不可做耗时操作（需要在us级）;
+                4. 数据接收不会再走dg_central_event_packet_handler-GATT_COMM_EVENT_GATT_DATA_REPORT
+ *
+ *  \param      [in] NUll
+ *
+ *  \return
+ *
+ *  \note       1. 中断回调及所加函数中不能添加打印, 会影响cpu执行效率.
+                   ps: 如加调试打印, 结束后请注释.
+ */
+/*************************************************************************************************/
+bool ll_conn_rx_acl_hook_get(const uint8_t *const data, size_t len)
+{
+    /*
+    static u32 cnt = 0;
+    cnt++;
+    log_info("%s[cnt:%d len:%d]", __func__, cnt, len);
+    put_buf(data, len);
+    */
+
+    /* return true; // 已处理，不再流向ATT层 */
+    return false;
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief      1. 用于做数据发送(适用于500us，1ms双连接流程)，不开sm优先级高于ll_conn_rx_acl_hook_get,
+                   return false则走ll_conn_rx_acl_hook_get流程
+                2. 底层有事件触发后回调直接来上层拿数据发送,函数名不可修改，无需调用;
+                3. 不可做耗时操作（需要在us级）;
+ *
+ *  \param
+ *
+ *  \return
+ *
+ *  \note       1. 中断回调及所加函数中不能添加打印, 会影响cpu执行效率.
+                   ps: 如加调试打印, 结束后请注释.
+ */
+/*************************************************************************************************/
+bool bb_le_rx_data_pdu_hook_get(void *priv, const u8 *data, u8 len)
+{
+    uint16_t l2cap_chl_id = little_endian_read_16(data, 2);
+    uint16_t att_handle = little_endian_read_16(data, 5);
+    if ((l2cap_chl_id == 4) && (att_handle == 0x4c)) { // dg_central_write_handle = 0x004c;
+        /*
+        static u32 cnt = 0;
+        cnt++;
+        log_info("%s[cnt:%d len:%d]", __func__, cnt, len);
+        put_buf(data, len);
+        */
+        return true;  // 已处理，不再流向ATT层
+    }
+    return false; // 走ll_conn_rx_acl_hook_get流程
+}
+
+/*************************************************************************************************/
+/*!
  *  \brief      1. 基带接口,用于高回报率鼠标,需搭配aw31 dongle使用;
                 2. 底层有事件触发后回调直接来上层拿数据发送,函数名不可修改，无需调用;
                 3. 不可做耗时操作（需要在us级）;
@@ -176,7 +251,8 @@ static void mouse_data_send(void *priv_hw, uint8_t hw_state, bool is_24g)
  *
  *  \return
  *
- *  \note
+ *  \note       1. 中断回调及所加函数中不能添加打印, 会影响cpu执行效率.
+                   ps: 如加调试打印, 结束后请注释.
  */
 /*************************************************************************************************/
 void ble_event_irq_hook(void *priv_hw, void *link, uint8_t hw_state, uint8_t flag)
@@ -729,13 +805,25 @@ static void mouse_btmode_init()
             log_info("##init_24g_code: %04x", CFG_RF_24G_CODE_ID);
             rf_set_24g_hackable_coded(CFG_RF_24G_CODE_ID);
         }
+        if (mouse_info.mouse_hid_mode == HID_MODE_BLE) {
+            mouse_send_data_timer_init(MOUSE_BLE_GTIMER_INIT_TIME);
+            // 关闭高回报率模式
+            ble_op_conn_us_unit(0);
+            // 开启more data
+            set_config_vendor_le_bb(0);
+            log_info("mode: BLE");
+        } else {
+            log_info("mode: 2.4G");
+            // 设置高回报率模式
+            ble_op_conn_us_unit(1);
+            ble_op_conn_init_2Mphy(1);
+            // 关闭more data
+            set_config_vendor_le_bb(VENDOR_BB_MD_CLOSE);
+        }
         btstack_ble_start_after_init(0);
     }
-#if LOW_CONNECT_INTERVAL_TEST
-    mouse_select_btmode(HID_MODE_24G);
-#else
+
     mouse_select_btmode(HID_MODE_INIT);
-#endif
 }
 
 /*************************************************************************************************/
@@ -760,20 +848,6 @@ static void mouse_bt_connction_status_event_handler(struct bt_event *bt)
         mouse_board_devices_init();
         bt_set_local_name((char *)mouse_ble_name, strlen(mouse_ble_name));
         mouse_btmode_init();
-        if (mouse_info.mouse_hid_mode == HID_MODE_BLE) {
-            mouse_send_data_timer_init(MOUSE_BLE_GTIMER_INIT_TIME);
-            // 关闭高回报率模式
-            ble_op_conn_us_unit(0);
-            // 开启more data
-            set_config_vendor_le_bb(0);
-        } else {
-            // 设置高回报率模式
-            ble_op_conn_us_unit(1);
-            ble_op_conn_init_2Mphy(1);
-            // 关闭more data
-            set_config_vendor_le_bb(VENDOR_BB_MD_CLOSE);
-        }
-
         break;
 
     default: {
@@ -799,6 +873,11 @@ void mouse_set_is_paired(uint8_t is_paired)
     mouse_info.mouse_is_paired = is_paired;
 }
 
+void mouse_set_is_paired_cb(void *priv)
+{
+    uint8_t is_paired = *(uint8_t *)priv;
+    mouse_set_is_paired(is_paired);
+}
 /*************************************************************************************************/
 /*!
  *  \brief      获取MOUSE状态信息
@@ -831,9 +910,6 @@ static void mouse_hogp_ble_status_callback(ble_state_e status, uint32_t value)
     log_info("mouse_hogp_ble_status_callback============== %02x   value:0x%x\n", status, value);
     switch (status) {
     case BLE_ST_CONNECT:
-#if LOW_CONNECT_INTERVAL_TEST
-        mouse_set_is_paired(1);
-#endif
         log_info("BLE_ST_CONNECT\n");
         break;
 
@@ -879,7 +955,7 @@ static void mouse_hogp_ble_status_callback(ble_state_e status, uint32_t value)
     case BLE_ST_CONNECTION_UPDATE_OK:
 #if TEST_MOUSE_SIMULATION_ENABLE
         // 测试模式不能立即发数，否则会报超时断开
-        sys_timeout_add((void *)1, mouse_set_is_paired, 500);
+        sys_timeout_add((void *)1, mouse_set_is_paired_cb, 500);
 #else
         if (!le_hogp_get_is_paired()) {
             mouse_set_is_paired(1);

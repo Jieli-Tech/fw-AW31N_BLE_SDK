@@ -56,6 +56,7 @@ typedef enum {
     BLE_CMD_US_UNIT,
     BLE_CMD_GET_IS_US_UNIT,
     BLE_CMD_INIT_2MPHY,
+    BLE_CMD_FIXED_SLOT,
     BLE_CMD_SET_DATA_LENGTH,
     BLE_CMD_SET_HCI_CFG,
     BLE_CMD_SCAN_ENABLE2,
@@ -318,7 +319,7 @@ bool ble_vendor_interval_event_enable(u16 conn_handle, int enable);
 /*!
  *  \brief      配置协议栈ATT默认的MTU大小.
  *
- *  \param      [in] mtu_size     配置MUT大小 ,range :23 ~517.
+ *  \param      [in] mtu_size     配置MTU大小 ,range :23 ~247.
  *
  *  \return     配置后mtu_size的值.
  */
@@ -925,6 +926,15 @@ void bt_make_ble_address(u8 *ble_address, u8 *edr_address);
 /*************************************************************************************************/
 #define ble_op_is_us_unit(ptr)     \
 	ble_user_cmd_prepare(BLE_CMD_GET_IS_US_UNIT, 1, ptr)
+
+/*************************************************************************************************/
+/*!
+ *  \brief     设置slot单位连接
+ */
+/*************************************************************************************************/
+#define ble_op_conn_fixed_slot(slot)     \
+	ble_user_cmd_prepare(BLE_CMD_FIXED_SLOT, 1, slot)
+
 
 /*************************************************************************************************/
 /*!

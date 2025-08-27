@@ -247,8 +247,9 @@ void mcpwm_deinit(int mcpwm_cfg_id)
         ch_reg->ch_con1 = BIT(MCPWM_CH_FCLR);
         /* spin_unlock(&mcpwm_lock); */
     }
-    free(mcpwm_info[mcpwm_cfg_id]);
+    /* free(mcpwm_info[mcpwm_cfg_id]); */
     memset(mcpwm_info[mcpwm_cfg_id], 0, sizeof(struct mcpwm_info_t));
+    mcpwm_info[mcpwm_cfg_id] = NULL;
 }
 
 void mcpwm_start(int mcpwm_cfg_id)
@@ -362,6 +363,12 @@ void mcpwm_set_duty(int mcpwm_cfg_id, u16 duty)
     } else if (duty == 0) {
         tmr_cnt = ch_cmpl;
         tmr_con &= ~(0b11);
+    } else {
+        if (mcpwm_info[id]->cfg.aligned_mode == MCPWM_CENTER_ALIGNED) { //中心对齐
+            tmr_con |= 0b10; //递增-递降循环模式，中心对齐
+        } else {
+            tmr_con |= 0b01; //递增模式，边沿对齐
+        }
     }
 
     /* spin_lock(&mcpwm_lock); */
@@ -484,4 +491,56 @@ void mcpwm_test(void)
     /* } */
 }
 #endif
+
+#if 1
+/*
+ PWM小数分频功能的demo示例，用户可以调用该示例来进行功能验证。
+ */
+void clk_set_en(u8 en);
+u32 pll_frac_switch(u32 div, u32 nr);
+void pll_frac_exit();
+void test_m_pwm_001()
+{
+    clk_set_en(1);
+    /* clk_set("sys", 64000000); */
+    clk_set("lsb", 96000000);
+    clk_set_en(0);
+    clock_dump();
+
+    u32 freq = pll_frac_switch(120, 995);  // 471000.485000
+    /* pll_frac_switch(126, 1044);  // 471000.485000 */
+    printf("**********-----pll:%d\n", freq);
+
+    struct mcpwm_config pwm_p_data ;
+
+    pwm_p_data.aligned_mode = MCPWM_EDGE_ALIGNED;
+    pwm_p_data.ch = MCPWM_CH0 ;
+    pwm_p_data.frequency = 471;
+    pwm_p_data.duty = 5000 ;
+    pwm_p_data.h_pin = IO_PORTA_01 ;
+    pwm_p_data.l_pin = -1 ;
+    pwm_p_data.detect_port = -1 ;
+    pwm_p_data.edge = MCPWM_EDGE_FAILL;
+    pwm_p_data.irq_priority = 1;                 //优先级默认为1
+    /* pwm_p_data.deadtime_ns = 1000;           //死驱时间,1000ns */
+    pwm_p_data.complementary_en = 0 ;
+
+    int ch0_id0 = mcpwm_init(&pwm_p_data);
+    mcpwm_start(ch0_id0);
+
+    pwm_p_data.aligned_mode = MCPWM_EDGE_ALIGNED;
+    pwm_p_data.ch = MCPWM_CH1;
+    pwm_p_data.frequency = 484;
+    pwm_p_data.duty = 5000 ;
+    pwm_p_data.h_pin = IO_PORTA_02;
+    pwm_p_data.l_pin = -1 ;
+    pwm_p_data.complementary_en = 0 ;
+
+    int ch1_id0 = mcpwm_init(&pwm_p_data);
+    mcpwm_start(ch1_id0);
+    //while (1) ;
+
+}
+#endif
+
 

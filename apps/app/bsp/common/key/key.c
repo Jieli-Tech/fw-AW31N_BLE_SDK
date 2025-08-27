@@ -263,6 +263,15 @@ void key_driver_scan(void *_scan_para)
     }
 
 _notify:
+    /* log_info("key_value: 0x%x, event: %d, key_poweron_flag: %d\n", key_value, key_event, key_poweron_flag); */
+    if (key_poweron_flag) {
+        if (key_event == KEY_EVENT_UP) {
+            clear_key_poweron_flag();
+            return;
+        }
+        return;
+    }
+
     key_value &= ~BIT(7);  //BIT(7) 用作按键特殊处理的标志
     struct sys_event *e = event_pool_alloc();
     if (e == NULL) {
@@ -281,14 +290,7 @@ _notify:
     scan_para->notify_value = NO_KEY;
 
     e->arg  = (void *)DEVICE_EVENT_FROM_KEY;
-    /* log_info("key_value: 0x%x, event: %d, key_poweron_flag: %d\n", key_value, key_event, key_poweron_flag); */
-    if (key_poweron_flag) {
-        if (key_event == KEY_EVENT_UP) {
-            clear_key_poweron_flag();
-            return;
-        }
-        return;
-    }
+
     if (key_event_remap(e)) {
         main_application_operation_event(NULL, e);
     }

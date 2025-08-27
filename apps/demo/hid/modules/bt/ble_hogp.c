@@ -121,9 +121,15 @@ static u8 first_pair_flag;     //第一次配对标记
 static u8 is_hogp_active = 0;  //不可进入sleep状态
 static adv_cfg_t hogp_server_adv_config;
 
+#if CONFIG_APP_MOUSE_LOW_LATENCY
+/*--------------------------------------------*/
+//普通未连接广播周期 (unit:0.625ms) -- 配置用于低延时测试主机能快速搜索从机.
+#define ADV_INTERVAL_MIN                48
+#else
 /*--------------------------------------------*/
 //普通未连接广播周期 (unit:0.625ms)
 #define ADV_INTERVAL_MIN                (160 * 5)
+#endif
 
 /*------------------------------
 配置有配对绑定时,先回连广播快连,再普通广播;否则只作普通广播
@@ -653,7 +659,7 @@ static int hogp_event_packet_handler(int event, u8 *packet, u16 size, u8 *ext_pa
 
     case GATT_COMM_EVENT_SERVER_STATE:
         log_info("server_state: %02x,%02x\n", little_endian_read_16(packet, 1), packet[0]);
-        /* __ble_state_to_user(packet[0], hogp_con_handle); */
+        __ble_state_to_user(packet[0], hogp_con_handle);
         break;
 
     case GATT_COMM_EVENT_CONNECTION_UPDATE_REQUEST_RESULT:
@@ -665,6 +671,12 @@ static int hogp_event_packet_handler(int event, u8 *packet, u16 size, u8 *ext_pa
         //if (hogp_con_handle) {
         //    ble_op_set_data_length(hogp_con_handle, 251, 2120);
         //}
+        break;
+
+    case GATT_COMM_EVENT_VENDOR_REMOTE_TEST:
+        u8 testbox_connect_status = packet[0];
+        log_info("testbox connect status:%02x", testbox_connect_status);
+        __ble_bt_evnet_post(SYS_BT_EVENT_TYPE_HCI_STATUS,  HCI_EVENT_VENDOR_REMOTE_TEST, NULL, testbox_connect_status);
         break;
 
     default:
@@ -1065,7 +1077,8 @@ static int hogp_att_write_callback(hci_con_handle_t connection_handle, uint16_t 
  *
  *  \return
  *
- *  \note
+ *  \note  1. 低延时模式下的1拖2应用(ble/2.4g), 广播数据需在adv data里填充, 不能填充在scan rsp里.
+ *            避免蓝牙带宽被占用导致搜索不到scan rsp.
  */
 /*************************************************************************************************/
 static int hogp_make_set_adv_data(u8 adv_reconnect, u8 *adv_name_ok)

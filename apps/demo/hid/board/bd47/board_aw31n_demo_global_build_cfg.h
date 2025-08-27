@@ -12,7 +12,6 @@
 
 #define CONFIG_UPDATE_JUMP_TO_MASK              0   	//配置升级到loader的方式0为直接reset,1为跳转(适用于芯片电源由IO口KEEP住的方案,需要注意检查跳转前是否将使用DMA的硬件模块全部关闭)
 
-#if CONFIG_DOUBLE_BANK_ENABLE
 //flash size vaule definition
 #define FLASH_SIZE_256K							0x40000
 #define FLASH_SIZE_512K							0x80000
@@ -20,14 +19,16 @@
 #define FLASH_SIZE_2M							0x200000
 #define FLASH_SIZE_4M							0x400000
 
-#define CONFIG_FLASH_SIZE                       FLASH_SIZE_2M    //配置FLASH大小
-#endif
+#define CONFIG_FLASH_SIZE                       FLASH_SIZE_256K    //配置FLASH大小
 
 #define UPDATE_V2_EN                            1           // 升级功能使能
-#define TESTBOX_BT_UPDATE_EN                    0           // 测试盒升级
+#define TESTBOX_BT_UPDATE_EN                    1           // 测试盒升级
 
 #define TESTBOX_UART_UPDATE_EN                  0           // 测试盒串口升级
-#define TCFG_UART_UPDATE_PORT		            IO_PORTA_00 // 测试盒串口IO口
+#if TESTBOX_UART_UPDATE_EN
+#define APP_USER_UART_UPDATE_EN                 0           // 自定义串口升级，IO口与测试盒串口一致，不需要配置isd_config.ini文件
+#endif
+#define TCFG_UART_UPDATE_PORT		            IO_PORTA_00 // 测试盒串口IO口,需与isd_config.ini的UTRX匹配
 
 #define CONFIG_APP_OTA_EN                       0           //是否支持RCSP升级(JL-OTA)
 #define HAS_USB_EN                              0

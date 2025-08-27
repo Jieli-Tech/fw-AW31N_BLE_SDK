@@ -261,7 +261,7 @@ enum {
 #define MSG_TYPE_BIT_LEN        12
 #define MSG_PARAM_BIT_LEN       (MSG_HEADER_BYTE_LEN*8-MSG_TYPE_BIT_LEN)
 
-#define MAX_POOL		    128
+#define MAX_POOL		    32//128
 
 #define NO_EVENT			0xffff
 
@@ -330,5 +330,6 @@ void event_pool_free(struct sys_event *event_ptr);
 void event_pool_init();
 #endif
 
+void msg_debug_info(void);
 
 

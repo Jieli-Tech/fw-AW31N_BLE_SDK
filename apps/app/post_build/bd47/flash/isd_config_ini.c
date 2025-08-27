@@ -6,9 +6,11 @@ PID = AW31N; //长度16byte,示例：芯片封装_应用方向_方案名称
 VID = 0.01;
 RESERVED_OPT = 0;
 
+//配置需要的flash大小
+FLASH_SIZE = CONFIG_FLASH_SIZE;     //flash_size cfg
+
 #if CONFIG_DOUBLE_BANK_ENABLE
 BR22_TWS_DB = YES;  //dual bank flash framework enable
-FLASH_SIZE = CONFIG_FLASH_SIZE;     //flash_size cfg
 BR22_TWS_VERSION = 0; //default fw version
 #if CONFIG_DB_UPDATE_DATA_GENERATE_EN
 DB_UPDATE_DATA = YES; //generate db_update_data.bin
@@ -34,6 +36,9 @@ LOADER_BAUD_RATE = 1000000;
 LOADER_ASK_BAUD_RATE = 1000000;
 BEFORE_LOADER_WAIT_TIME = 150;
 SERIAL_SEND_KEY = yes;
+OTP_CFG_SIZE = 256;
+[BURNER_PASSTHROUGH_CFG]
+FLASH_WRITE_PROTECT = YES;
 
 [CHIP_VERSION]
 SUPPORTED_LIST = A, B;
@@ -56,9 +61,15 @@ SPI = 2_3_0_0;
 #if TCFG_CLOCK_OSC_1PIN_EN
 OSC_1PIN = 1; //单脚晶振
 #endif
-UTTX = PA03; //uboot串口tx
-UTBD = 1000000; //uboot串口波特率
+#if (CONFIG_PLL_SOURCE_USING_LRC == 1)
+PLL_SRC = LRC; //PLL时钟源：屏蔽或！=LRC; 默认选择晶振。 值=LRC,且用no_ota_uboot,则时钟源选LRC
+LRC = -1;
+#endif
+/* UTTX = PA03; //uboot串口tx */
+/* UTBD = 1000000; //uboot串口波特率 */
+#if TESTBOX_UART_UPDATE_EN
 UTRX = PA00;
+#endif
 #if CONFIG_UPDATE_JUMP_TO_MASK
 LATCH_IO = PA00 & 0
 #endif
@@ -123,6 +134,7 @@ VM_ADR = 0;
 VM_LEN = 8K;
 VM_OPT = 1;
 
+//以下区域依据FLASH_SIZE来固定放在尾部
 /*系统syscfg vm区域定义的大小 */
 EEPROM_ADR = AUTO;
 EEPROM_LEN = 8K;
@@ -146,7 +158,15 @@ XOSC_PIN_MODE = double
 #endif
 
                 [TOOL_CONFIG]
-                1TO2_MIN_VER = 2.27.9;
-1TO8_MIN_VER = 3.1.24;
+                1TO2_MIN_VER = 2.28.3;
+1TO8_MIN_VER = 3.1.28;
 
+[MASTER_CONFIG_OPTIONS]
+EN_ACT = FALSE;
+LVD_RST_EN = TRUE;
+/*{"1.8v","1.9v","2.0v","2.1v","2.2v","2.3v","2.4v","2.5v"}*/
+LVD_LEVEL = 1.8v;
+
+/*{"2.1v","2.2v","2.3v","2.4v","2.5v","2.6v","2.7v","2.8v","2.9v","3.0v","3.1v","3.2v","3.3v","3.4v","3.5v","3.6v"}*/
+/*IOVDD_LEVEL=3.0v;*/
 

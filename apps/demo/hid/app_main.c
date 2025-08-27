@@ -3,13 +3,7 @@
 
     *   Description     :
 
-    *   Author          : Wangzhongqiang by Bingquan
-
-    *   Email           : caibingquan@zh-jieli.com
-
-    *   Last modifiled  : 2023-08-29 14:54
-
-    *   Copyright:(c)JIELI  2023-2023  @ , All Rights Reserved.
+    *   Copyright:(c)JIELI  2011-2019  @ , All Rights Reserved.
 *********************************************************************************************/
 #include "includes.h"
 #include "app_config.h"
@@ -63,7 +57,7 @@ const int IRQ_SLCD_IP         = 2;	//no use
 const int IRQ_BT_TIMEBASE_IP  = 6;   //BT TIMEBASE
 const int IRQ_BLE_EVENT_IP    = 5;   //BT RX_EVT
 const int IRQ_BLE_RX_IP       = 5;   //BT RX
-const int IRQ_BTSTACK_MSG_IP  = 3;   //BT STACK
+const int IRQ_BTSTACK_MSG_IP  = 4;   //BT STACK
 const int IRQ_BREDR_IP        = 3;   //no use
 const int IRQ_BT_RXMCH_IP     = 3;   //no use
 const int IRQ_AES_IP          = 3;   //aes
@@ -78,8 +72,6 @@ APP_VAR app_var;
 
 void app_var_init(void)
 {
-    app_var.play_poweron_tone = 1;
-
     app_var.auto_off_time =  0; //TCFG_AUTO_SHUT_DOWN_TIME;
     app_var.warning_tone_v = 340;
     app_var.poweroff_tone_v = 330;
@@ -93,6 +85,34 @@ u8 get_charge_online_flag(void)
 
 void clr_wdt(void);
 
+void check_power_on_key(void)
+{
+#if TCFG_POWER_ON_NEED_KEY
+
+    u32 delay_10ms_cnt = 0;
+    while (1) {
+        clr_wdt();
+        os_time_dly(1);
+
+        extern u8 get_power_on_status(void);
+        if (get_power_on_status()) {
+            log_info("+");
+            extern void set_key_poweron_flag(u8 flag);
+            set_key_poweron_flag(1);
+            delay_10ms_cnt++;
+            if (delay_10ms_cnt > 70) {
+                return;
+            }
+        } else {
+            log_info("-");
+            delay_10ms_cnt = 0;
+            log_info("enter softpoweroff\n");
+            power_set_soft_poweroff();
+        }
+    }
+#endif
+}
+
 void app_main()
 {
     //TODO
@@ -101,20 +121,19 @@ void app_main()
     /*     update = update_result_deal(); */
     /* } */
 
-    log_info("\n >>>>>>>>>>>>>>>>>app_main...\n");
+    log_info(">>>>>>>>>>>>>>>>>app_main...\n");
 
     log_info("nk_malloc: %08x,%04x, nv_malloc: %08x,%04x", NK_RAM_MALLOC_START_ADDR, NK_RAM_MALLOC_SIZE,
              NV_RAM_MALLOC_START_ADDR, NV_RAM_MALLOC_SIZE);
 
     log_info("sstack:size,top= %04x, %08x,ustack:size,top= %04x, %08x", sizeof(_sstack_space), _sstack_top, sizeof(_ustack_space), _ustack_top);
 
+#if TCFG_POWER_ON_NEED_KEY
+    check_power_on_key();
+#endif
 
 #if TCFG_SYS_LVD_EN
     app_power_vbat_check();
-#endif
-
-#if TCFG_CHARGE_ENABLE
-    set_charge_event_flag(1);
 #endif
 
     main_application_operation_state(NULL, APP_STA_START);
@@ -143,6 +162,7 @@ __attribute__((used)) int *__errno()
     return &err;
 }
 
+
 static void main_app_get_name(struct intent *it)
 {
     init_intent(it);
@@ -169,6 +189,10 @@ static void main_app_get_name(struct intent *it)
 
 #elif(CONFIG_APP_MOUSE_DUAL)
     it->name = "mouse_dual";
+    it->action = ACTION_MOUSE_MAIN;
+
+#elif(CONFIG_APP_MOUSE_LOW_LATENCY)
+    it->name = "mouse_low_latency";
     it->action = ACTION_MOUSE_MAIN;
 
 #elif(CONFIG_APP_IDLE)
@@ -237,6 +261,7 @@ struct application *main_application_operation_event(struct application *app, st
 
 void bt_event_update_to_user(u8 *addr, u32 type, u8 event, u32 value)
 {
+    log_info("bt_event_update_to_user type:%d\n", type);
     struct sys_event *e = event_pool_alloc();
     if (e == NULL) {
         log_info("Memory allocation failed for sys_event");

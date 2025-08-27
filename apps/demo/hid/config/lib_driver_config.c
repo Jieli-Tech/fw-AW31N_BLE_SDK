@@ -3,11 +3,18 @@
 /* #include "clock.h" */
 #include "app_config.h"
 #include "app_modules.h"
+#include "gpadc.h"
 
 #if TCFG_POWER_MODE_QUIET_ENABLE
 const int config_dcdc_mode = 1;
 #else
 const int config_dcdc_mode = 0;
+#endif
+
+#if (TCFG_CLOCK_SYS_HZ == 160000000)
+const u32 pll_auto_disable = 1;    //0: PLL-48M  1: BTOSC-48M
+#else
+const u32 pll_auto_disable = 0;    //0: PLL-48M  1: BTOSC-48M
 #endif
 
 //*********************************************************************************//
@@ -32,9 +39,9 @@ const u8 cache_way_num              = CPU_USE_CACHE_WAY_NUMBER;
 //*********************************************************************************//
 bool const config_decoder_auto_mutex = 0;
 
-/* #if(TCFG_CLOCK_SYS_SRC == SYS_CLOCK_INPUT_PLL_RCL) //系统时钟源选择 */
-#if 0//(TCFG_CLOCK_SYS_SRC == SYS_CLOCK_INPUT_PLL_RCL) //系统时钟源选择
-const int  clock_sys_src_use_lrc_hw = 1; //当使用lrc时timer.c需要特殊设置
+
+#if (CONFIG_PLL_SOURCE_USING_LRC)
+const int  clock_sys_src_use_lrc_hw = 1;
 
 #if TCFG_USER_BLE_ENABLE
 //不支持使用蓝牙，需要关闭宏
@@ -42,7 +49,7 @@ const int  clock_sys_src_use_lrc_hw = 1; //当使用lrc时timer.c需要特殊设
 #endif
 
 #else
-/* const int  clock_sys_src_use_lrc_hw = 0; */
+const int  clock_sys_src_use_lrc_hw = 0;
 #endif
 
 #ifdef TCFG_VAD_LOWPOWER_CLOCK
@@ -81,6 +88,14 @@ const u8 adc_vbat_ch_en = 1;
 #else
 const u8 adc_vbat_ch_en = 0;
 #endif
+const u32 lib_adc_clk_max = 1000000;
+const u8 gpadc_battery_mode = MEAN_FILTERING_MODE; //使用IOVDD供电时,禁止使用 MEAN_FILTERING_MODE 模式
+const u32 gpadc_ch_power = AD_CH_PMU_VPWR_4; //根据供电方式选择通道
+const u8 gpadc_ch_power_div = 4; //分压系数,需和gpadc_ch_power匹配
+const u8 gpadc_power_supply_mode = TCFG_POWER_SUPPLY_MODE; //映射供电方式
+const u16 gpadc_battery_trim_vddiom_voltage = 2800; //电池trim 使用的vddio电压
+const u16 gpadc_battery_trim_voltage = 3700; //电池trim 使用的vbat电压
+
 #if TCFG_ADC_VTEMP_CH_EN
 const u8 adc_vtemp_ch_en = 1;
 #else
@@ -319,3 +334,9 @@ const char log_tag_const_i_PERI AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(TRUE);
 const char log_tag_const_d_PERI AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_PERI AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_e_PERI AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_GPADC AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_GPADC AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(TRUE);
+const char log_tag_const_d_GPADC AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_GPADC AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_e_GPADC AT(.LOG_TAG_CONST) = CONFIG_DEBUG_LIB(TRUE);

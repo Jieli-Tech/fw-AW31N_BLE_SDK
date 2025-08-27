@@ -102,7 +102,7 @@ typedef struct __LRC_CONFIG {
 } _GNU_PACKED_ LRC_CONFIG;
 
 void cfg_file_parse(u8 idx);
-const u8 *bt_get_mac_addr();
+// const u8 *bt_get_mac_addr();
 void bt_get_tws_local_addr(u8 *addr);
 
 STATUS *get_led_config(void);
@@ -117,5 +117,6 @@ extern void bt_update_mac_addr(u8 *addr);
 extern void bt_set_local_name(char *name, u8 len);
 extern void bt_reset_and_get_mac_addr(u8 *addr);
 extern void bt_set_pair_code_en(u8 en);
+
 #endif
 

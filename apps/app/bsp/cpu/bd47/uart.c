@@ -15,7 +15,7 @@
 
 
 //new uart driver
-#define     DEBUG_UART_NUM  0
+#define     DEBUG_UART_NUM  2
 #define     DEBUG_UART_DMA_EN   0
 
 /* #define     TCFG_UART_BAUDRATE  1000000 */
@@ -51,7 +51,8 @@ void debug_uart_init(u32 freq)
 #endif
         .tx_wait_mutex = 0,//1:不支持中断调用,互斥,0:支持中断,不互斥
     };
-    SFR(JL_CLOCK->PRP_CON0, 12, 3, 1);//uart std48
+    /* SFR(JL_CLOCK->PRP_CON0, 12, 3, 1);//uart std48 */
+    JL_UART2->CON0 = 0;
     uart_init(DEBUG_UART_NUM, &debug_uart_config);
 
 #if DEBUG_UART_DMA_EN

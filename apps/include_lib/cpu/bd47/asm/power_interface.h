@@ -40,4 +40,14 @@
 #include "power/power_app.h"
 #include "power/power_compat.h"
 
+
+//使能pdown模块
+//TCFG_LOWPOWER_LOWPOWER_SEL != 0
+extern const bool control_pdown;
+//使能poff模块
+//TCFG_LOWPOWER_LOWPOWER_SEL==DEEP_SLEEP_EN
+extern const bool control_poff;
+//使能soff模块
+extern const bool control_soff;
+
 #endif

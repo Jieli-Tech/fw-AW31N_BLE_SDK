@@ -100,7 +100,20 @@ enum syspll_ref_sel {
     SYSPLL_REF_SEL_RC_16M, // SYSPLL_REF_SEL_BTOSC_DIFF,
 };
 
-void lrc_init(void);
+void lprc_init(void);
+void lrc_hw_init();
+void erc_hw_init();
+
+void xosc_2pin_init_stable(void (*udly)(u32)); //fast mode 24M
+void xosc_2pin_init_normal(void (*udly)(u32)); //normal mode 24M
+void xosc_1pin_init_stable(void (*udly)(u32)); //fast mode 24M
+void xosc_1pin_init_normal(void (*udly)(u32)); //normal mode 24M
+
+u8 btosc_1pin_cfg(u32 lrc_freq);
+void pll_use_lrc_init(u32 lrc_nr, void (*udly)(u32));
+u8 get_osc_1pin_sta();
+u32 get_lrc_freq_from_db();
+
 void clk_voltage_init(u8 mode, u8 sys_dvdd);
 int clk_early_init(enum pll_ref_source pll_ref, u32 ref_frequency, u32 pll_frequency);
 int clk_set(const char *name, int clk);
@@ -123,6 +136,7 @@ void clk_out2_close(u8 gpio);
 void delay(u32 cnt);
 void udelay(u32 us);
 void mdelay(u32 ms);
+void rc_udelay(u32 us);
 u32 get_sys_us_cnt(void);
 
 
@@ -144,5 +158,19 @@ void clock_adaptive_sw(u32 sw);
 
 u32 clk_set_max_frequency(u32 freq);
 
+void erc32k_trim_init();
+u32 erc32k_trim_get_avg();
+u32 erc32k_trim_get_center();
+u32 erc32k_trim_get_latest();
+u32 erc32k_trim_get_drift();
+u32 erc32k_trim_get_high();
+u32 erc32k_trim_get_low();
+void erc32k_trim_dump();
+void lrc_trim_init();
+
+extern const u8 config_xosc_1pin_en;
+extern const int clock_sys_src_use_lrc_hw;
+u32 get_lrc_hz();
+u32 get_erc_hz();
 #endif
 

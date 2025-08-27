@@ -46,7 +46,7 @@
 #if CONFIG_BLE_HIGH_SPEED
 #define TEST_TRANS_TIMER_MS          5
 #else
-#define TEST_TRANS_TIMER_MS          500
+#define TEST_TRANS_TIMER_MS          100
 #endif
 
 #define TEST_PAYLOAD_LEN            (ATT_LOCAL_MTU_SIZE - 3)

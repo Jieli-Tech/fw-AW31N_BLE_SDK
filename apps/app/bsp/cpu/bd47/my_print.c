@@ -142,6 +142,19 @@ void put_u8hex(u8 dat)
     putchar(' ');
 #endif
 }
+
+void put_u16hex(u16 dat)
+{
+#ifdef CONFIG_DEBUG_ENABLE
+    put_u4hex(dat >> 12);
+    put_u4hex(dat >> 8);
+
+    put_u4hex(dat >> 4);
+    put_u4hex(dat);
+    putchar(' ');
+#endif
+}
+
 /* AT(.log_ut.text.cache.L2) */
 //TODO 暂时不放入date段,for nv_ram warn!!
 void printf_buf(const u8 *buf, int len)

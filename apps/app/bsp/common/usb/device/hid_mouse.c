@@ -420,7 +420,7 @@ void usb_hid_mouse_register(const usb_dev usb_id, void *p)
 }
 u32 usb_hid_mouse_desc_config(const usb_dev usb_id, u8 *ptr, u32 *cur_itf_num)
 {
-    log_info("hid interface num:%d\n", *cur_itf_num);
+    log_info("%s hid interface num:%d\n", __func__, *cur_itf_num);
     u8 *_ptr = ptr;
 
     memcpy(ptr, sHIDDescriptor, sizeof(sHIDDescriptor));

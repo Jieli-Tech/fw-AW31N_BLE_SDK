@@ -78,11 +78,14 @@ int app_comm_process_handler(int *msg)
 
     if (TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API
         || BT_MODE_IS(BT_BQB) || BT_MODE_IS(BT_FCC) || BT_MODE_IS(BT_FRE)) {
+        //增加 flash 干扰测试
         IcuFlushinvAll();
     }
 
-#if (!TCFG_NORMAL_SET_DUT_MODE && CONFIG_BT_MODE == BT_NORMAL)
+#if (TCFG_LOWPOWER_LOWPOWER_SEL)
     sys_power_down(4000000);
+#else
+    __asm__ volatile("idle");//避免非低功耗模式下CPU满载运行
 #endif
 
     return 0;

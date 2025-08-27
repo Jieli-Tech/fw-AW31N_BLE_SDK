@@ -47,6 +47,9 @@ typedef struct _update_mode_t {
 
 extern const int support_dual_bank_update_en;
 extern u8 check_le_pakcet_sent_finish_flag(void);
+extern int  norflash_set_write_protect(u32 enable);
+extern void ble_module_enable(u8 en);
+extern void bt_ble_exit(void);
 
 static u8 update_flag = 0;
 static u8 rcsp_update_status;
@@ -160,6 +163,11 @@ static void rcsp_update_before_jump_handle(int type)
     system_reset(UPDATE_FLAG);
 }
 
+static void timeout_reset_func(void *priv)
+{
+    system_reset(UPDATE_FLAG);
+}
+
 void JL_rcsp_update_cmd_resp(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len)
 {
     u8 msg[4];
@@ -196,7 +204,9 @@ void JL_rcsp_update_cmd_resp(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 
     case JL_OPCODE_SET_DEVICE_REBOOT:
         log_info("JL_OPCODE_SET_DEVICE_REBOOT\n");
         if (support_dual_bank_update_en) {
-            system_reset(UPDATE_FLAG);
+            JL_CMD_response_send(OpCode, JL_PRO_STATUS_SUCCESS, OpCode_SN, NULL, 0);
+            /* system_reset(UPDATE_FLAG); */
+            sys_timeout_add(NULL, timeout_reset_func, 500);
         }
         break;
     }
@@ -231,6 +241,8 @@ void JL_rcsp_msg_deal(RCSP_MSG msg, int argc, int *argv)
         if (check_ble_all_packet_sent()) {
             log_info("MSG_JL_DEV_DISCONNECT\n");
             JL_ble_disconnect();
+            ble_module_enable(0);
+            bt_ble_exit();
 #if RCSP_BLE_DEAL_OK
             if (check_edr_is_disconnct()) {
                 puts("-need discon edr\n");
@@ -256,6 +268,8 @@ void JL_rcsp_msg_deal(RCSP_MSG msg, int argc, int *argv)
         break;
 #endif
     case MSG_JL_UPDATE_START:
+        norflash_set_write_protect(0);
+
 #if RCSP_BLE_DEAL_OK
         if (check_edr_is_disconnct()) {
             rcsp_log_info("b");

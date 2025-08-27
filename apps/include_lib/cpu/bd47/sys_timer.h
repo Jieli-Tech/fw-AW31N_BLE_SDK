@@ -5,6 +5,11 @@
 #include "list.h"
 #include "jiffies.h"
 
+
+#define     SYS_IO_DEBUG_FLIP(i,x)    //{JL_PORT##i->DIR &= ~BIT(x), JL_PORT##i->OUT ^= BIT(x);}
+#define     SYS_IO_DEBUG_H(i,x)       //{JL_PORT##i->DIR &= ~BIT(x), JL_PORT##i->OUT |= BIT(x);}
+#define     SYS_IO_DEBUG_L(i,x)       //{JL_PORT##i->DIR &= ~BIT(x), JL_PORT##i->OUT &= ~BIT(x);}
+
 extern volatile u32 jiffies_2ms;
 #define SYS_TIMER_UNIT    2000
 #define SYS_TIMER_JIFFIES jiffies_2ms

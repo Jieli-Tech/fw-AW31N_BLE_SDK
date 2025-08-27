@@ -552,6 +552,8 @@ void ble_gatt_server_cbk_packet_handler(uint8_t packet_type, uint16_t channel, u
 
         case HCI_EVENT_VENDOR_REMOTE_TEST:
             log_info("---HCI_EVENT_VENDOR_REMOTE_TEST\n");
+            tmp_val[0] = little_endian_read_16(packet, 2);
+            __gatt_server_event_callback_handler(GATT_COMM_EVENT_VENDOR_REMOTE_TEST, (u8 *)tmp_val, 4, 0);
             break;
 
         case L2CAP_EVENT_CONNECTION_PARAMETER_UPDATE_RESPONSE: {

@@ -24,6 +24,8 @@
 <Add option="-Wframe-larger-than=256" />
 <Add option="-Wreturn-type" />
 <Add option="-Wimplicit-function-declaration" />
+<Add option="-Werror=jl-arg-struct-check" />
+<Add option="-Werror" />
 <Add option="-D__FPGA=0" />
 <Add option="-Werror=implicit-function-declaration" />
 <Add option="-Werror=return-type" />
@@ -34,8 +36,8 @@
 <Add option="-DSUPPORT_RESERVATION_RAM" />
 <Add option="-fms-extensions" />
 <Add option="-DAPP_CASE_HID" />
-<Add option="-DSDK_VERSION_CFG_DEFINE=0x120001" />
-<Add option="-DSDK_VERSION_DATE_DEFINE=202401113" />
+<Add option="-DSDK_VERSION_CFG_DEFINE=0x130001" />
+<Add option="-DSDK_VERSION_DATE_DEFINE=20250822" />
 <Add option="-DCONFIG_RELEASE_ENABLE" />
 <Add option="-DHAS_VFS_EN=1" />
 <Add option="-DNOFLOAT" />
@@ -117,6 +119,7 @@
 <Add option="../../../../../apps/include_lib/liba/bd47/flash/agreement.a" />
 <Add option="../../../../../apps/include_lib/liba/bd47/flash/update_lib.a" />
 <Add option="../../../../../apps/include_lib/liba/bd47/flash/cpu_lib.a" />
+<Add option="../../../../../apps/include_lib/liba/bd47/flash/pll_frac_lib.a" />
 <Add option="../../../../../apps/include_lib/liba/bd47/flash/fs_lib.a" />
 <Add option="../../../../../apps/include_lib/liba/bd47/flash/malloc_lib.a" />
 <Add option="../../../../../apps/include_lib/liba/bd47/flash/sys_timer_lib.a" />
@@ -232,12 +235,13 @@
 <Unit filename="../../../../../apps/app/bsp/common/usb/usb_std_class_def.h" />
 <Unit filename="../../../../../apps/app/bsp/common/vm/nvm_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/common/vm/vm_api.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="../../../../../apps/app/bsp/cpu/bd47/adc_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/cpu_debug.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/device.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="../../../../../apps/app/bsp/cpu/bd47/gpadc_hw.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/led/led_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/led/led_api_test.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/led/pwm_led.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="../../../../../apps/app/bsp/cpu/bd47/mcpwm.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/my_print.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/power/extern_dcdc/extern_dcdc.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/power/power_app.c"><Option compilerVer="CC"/></Unit>
@@ -245,6 +249,8 @@
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/power_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/tick_timer_sys.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/cpu/bd47/uart.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="../../../../../apps/app/bsp/cpu/gpadc.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="../../../../../apps/app/bsp/cpu/gpadc_hw_v12.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/device/device_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/app/bsp/device/device_app.h" />
 <Unit filename="../../../../../apps/app/bsp/device/device_list.c"><Option compilerVer="CC"/></Unit>
@@ -286,6 +292,8 @@
 <Unit filename="../../../../../apps/demo/hid/examples/mouse_dual/app_mouse_dual.h" />
 <Unit filename="../../../../../apps/demo/hid/examples/mouse_dual/mouse_usb.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/hid/examples/mouse_dual/mouse_usb.h" />
+<Unit filename="../../../../../apps/demo/hid/examples/mouse_low_latency/app_mouse_low_latency.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="../../../../../apps/demo/hid/examples/mouse_low_latency/app_mouse_low_latency.h" />
 <Unit filename="../../../../../apps/demo/hid/examples/mouse_single/app_mouse_single.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="../../../../../apps/demo/hid/examples/mouse_single/app_mouse_single.h" />
 <Unit filename="../../../../../apps/demo/hid/examples/remote_control/app_remote_control.c"><Option compilerVer="CC"/></Unit>
@@ -355,7 +363,6 @@
 <Unit filename="../../../../../apps/include_lib/common/tab_read.h" />
 <Unit filename="../../../../../apps/include_lib/common/vm.h" />
 <Unit filename="../../../../../apps/include_lib/common/vm_sfc.h" />
-<Unit filename="../../../../../apps/include_lib/cpu/bd47/adc_api.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/asm/power/p33/charge_hw.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/asm/power/p33/p33_access.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/asm/power/p33/p33_api.h" />
@@ -385,6 +392,7 @@
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/csfr.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/efuse.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/fusb_pll_trim.h" />
+<Unit filename="../../../../../apps/include_lib/cpu/bd47/gpadc_hw.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/gpio_hw.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/gptimer_hw.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/hwi.h" />
@@ -394,6 +402,7 @@
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/irq_vec.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/led_api.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/maskrom.h" />
+<Unit filename="../../../../../apps/include_lib/cpu/bd47/mcpwm.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/power_interface.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/pwm_led.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/spi_hw.h" />
@@ -404,6 +413,8 @@
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/uart_types.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/bd47/usb.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/cpu_debug.h" />
+<Unit filename="../../../../../apps/include_lib/cpu/gpadc.h" />
+<Unit filename="../../../../../apps/include_lib/cpu/gpadc_hw_v12.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/gpio.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/gptimer.h" />
 <Unit filename="../../../../../apps/include_lib/cpu/spi.h" />

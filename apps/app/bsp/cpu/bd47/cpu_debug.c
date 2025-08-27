@@ -2,12 +2,13 @@
 #include "app_config.h"
 #include "gpio.h"
 #include "sys_memory.h"
-#include "adc_api.h"
+#include "gpadc.h"
 #include "sys_timer.h"
 #include "cpu_debug.h"
 #include "my_malloc.h"
 #include "clock.h"
 #include "printf.h"
+#include "msg.h"
 
 #ifdef CONFIG_SDK_DEBUG_LOG
 
@@ -79,6 +80,7 @@ void sdk_cpu_debug_main_init(void)
 
 void sdk_cpu_debug_check_sdk_info_logout(void)
 {
+    msg_debug_info();
     stack_debug_free_check_info();
 #if TCFG_USER_BLE_ENABLE
     log_info("nk_remain= 0x%04x; bt_nk_malloc: size= 0x%04x ,free= 0x%04x", NK_RAM_REMAIN_SIZE, NK_RAM_MALLOC_SIZE, __bt_nk_get_free_size());

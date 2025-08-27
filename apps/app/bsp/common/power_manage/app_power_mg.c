@@ -1,5 +1,5 @@
 #include "app_power_mg.h"
-#include "adc_api.h"
+#include "gpadc.h"
 #include "key.h"
 #include "clock.h"
 #include "led_control.h"
@@ -79,15 +79,15 @@ void app_to_recover(void)
 
 }
 
+extern void sys_power_down(u32 usec);
 static void soft_by_power_mode(void)
 {
     sys_timeout_del(app_power_soft.power_soft_handle);//删除sys_timer没来得及处理的timer
     /* sys_timer_exit();//关闭sys_timer */
     app_power_soft.power_soft_handle = 0;
     app_power_soft.power_soft_flag |= BIT(0);
-    extern void sys_power_down(u32 usec);
     putchar('{');
-    sys_power_down(LOW_POWER_KEEP);//sys set no wukeup time
+    sys_power_down(LOW_POWER_KEEP); //sys set no wukeup time
 }
 
 void power_wakeup_init(void)
@@ -125,7 +125,7 @@ static void app_power_scan(void *priv)
 {
 #if TCFG_SYS_LVD_EN && TCFG_ADC_VBAT_CH_EN
     static uint16_t low_power_cnt = 0;
-    uint16_t vol = adc_get_voltage(AD_CH_PMU_VBAT) * 4;
+    uint16_t vol = gpadc_battery_get_voltage();
     if (0 == vol) {
         return;
     }
@@ -181,7 +181,7 @@ __attribute__((weak)) uint8_t app_power_remap_vbat_percent(uint16_t bat_val)
 
 uint16_t app_power_get_vbat_level(void)
 {
-    return (adc_get_voltage(AD_CH_PMU_VBAT) * 4);
+    return gpadc_battery_get_voltage();
 }
 
 uint8_t app_power_get_vbat_percent(void)

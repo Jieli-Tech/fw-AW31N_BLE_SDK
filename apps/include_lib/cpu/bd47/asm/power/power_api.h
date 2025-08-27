@@ -123,6 +123,8 @@ void lowpower_init();
 
 void lowpower_uninit();
 
+void lowpower_code_init();
+
 //
 //
 //                  lowpower
@@ -156,5 +158,7 @@ void power_set_soft_poweroff(void);
 
 void mask_softflag_config(struct app_soft_flag_t *softflag);
 
+extern const u32 osc_restart_cnt;
+extern const u32 osc_1pin_soff_wkup_time;
 
 #endif

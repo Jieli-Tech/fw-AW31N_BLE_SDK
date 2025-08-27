@@ -5,6 +5,9 @@
 #include "app_config.h"
 #include "start/init.h"
 #include "sys_memory.h"
+#include "clock_hw.h"
+#include "clock.h"
+#include "sys_timer.h"
 
 //-------------------------------------------------------------------
 /*config
@@ -62,7 +65,7 @@ void sleep_exit_callback(u32 usec)
 static void __mask_io_cfg()
 {
     struct app_soft_flag_t app_soft_flag = {0};
-    app_soft_flag.sfc_fast_boot = 1;
+    app_soft_flag.sfc_fast_boot = 0;
     mask_softflag_config(&app_soft_flag);
 }
 
@@ -70,6 +73,7 @@ u8 power_soff_callback()
 {
 
     extern_dcdc_switch(0);
+
 
     rtc_save_context_to_vm();
 
@@ -85,12 +89,15 @@ u8 power_soff_callback()
 //power_set_soft_poweroff 处理回调
 int power_set_soft_poweroff_hook(void)
 {
-#if defined(CONFIG_CPU_BD47)
+
+    if (get_osc_1pin_sta() == 0) {
+        vir_rtc_wakeup_enable(osc_1pin_soff_wkup_time);//softoff定时唤醒配置，wkup_ms单位:ms
+    }
+
     //睡眠前做预擦除动作
     sysmem_pre_erase_api();
     //check overlay
     sleep_overlay_check_reload();
-#endif
     return 0;
 }
 
@@ -103,7 +110,7 @@ void power_early_flowing()
 
     init_boot_rom();
 
-    printf("get_boot_rom(): %d", get_boot_rom());
+    /* printf("get_boot_rom(): %d", get_boot_rom()); */
 
     //默认关闭MCLR
     p33_mclr_sw(0);

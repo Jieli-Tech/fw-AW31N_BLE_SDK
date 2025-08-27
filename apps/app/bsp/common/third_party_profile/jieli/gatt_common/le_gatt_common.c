@@ -508,6 +508,7 @@ void __ble_comm_cbk_sm_packet_handler(uint8_t packet_type, uint16_t channel, uin
             case SM_EVENT_JUST_WORKS_REQUEST:
             case SM_EVENT_PASSKEY_DISPLAY_NUMBER:
             case SM_EVENT_PASSKEY_INPUT_NUMBER:
+            case SM_EVENT_KEYPRESS_NOTIFICATION:
             case SM_EVENT_PAIR_PROCESS: {
                 log_info("Event_Type:%02x,packet_address:%08x", hci_event_packet_get_type(packet), packet);
                 put_buf(packet, 16);
@@ -689,7 +690,10 @@ static void __ble_comm_cbk_packet_handler(uint8_t packet_type, uint16_t channel,
             break;
 
         case HCI_EVENT_VENDOR_REMOTE_TEST:
+#if SUPPORT_TEST_BOX_BLE_CONNECT_TEST_EN
             log_info("HCI_EVENT_VENDOR_REMOTE_TEST: %d,%d\n", packet[1], packet[2]);
+            ADD_HANDLER_ROLE(__just_conn_handle_role(tmp_handle));
+#endif
             break;
 
         case L2CAP_EVENT_CONNECTION_PARAMETER_UPDATE_RESPONSE:

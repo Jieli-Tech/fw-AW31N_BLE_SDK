@@ -524,6 +524,7 @@ int ll_vendor_close_latency(u16 conn_handle);
 int ll_vendor_conn_unit_is_us(const bool is_us);
 int ll_vendor_get_conn_unit_is_us(void);
 int ll_vendor_conn_init_is_2Mphy(const bool is_2Mphy);
+int ll_vendor_conn_slot(const u8 slot);
 
 int ll_hci_encryption(u8 *key, u8 *plaintext_data);
 

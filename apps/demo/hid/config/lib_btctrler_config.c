@@ -202,6 +202,12 @@ void set_config_vendor_le_bb(u32 vendor_le_bb)
 {
     config_vendor_le_bb = vendor_le_bb;
 }
+
+u32 config_phy_code_le_bb = 0;
+void set_config_phy_code_le_bb(u32 vendor_le_bb)
+{
+    config_phy_code_le_bb = vendor_le_bb;
+}
 /*-----------------------------------------------------------*/
 
 /*-----------------------------------------------------------*/

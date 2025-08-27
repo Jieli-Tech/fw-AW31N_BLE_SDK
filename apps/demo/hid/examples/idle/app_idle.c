@@ -32,6 +32,7 @@
 #endif
 
 static volatile u8 timer_wakeup_id;
+static u8 idle_is_active;
 
 static void idle_set_soft_poweroff(void)
 {
@@ -55,7 +56,7 @@ static void idle_key_event_handler(struct sys_event *event)
 
 static void idle_timer_handle_test(void)
 {
-    log_info("wakeup");
+    idle_is_active = 1;
 }
 
 static void idle_app_start()
@@ -73,6 +74,11 @@ static void idle_app_start()
 
     int msg[4] = {0};
     while (1) {
+        if (idle_is_active) {
+            idle_is_active = 0;
+            log_info("wakeup");
+        }
+
         get_msg(sizeof(msg) / sizeof(int), msg);
         app_comm_process_handler(msg);
     }
@@ -126,6 +132,17 @@ static int idle_state_machine(struct application *app, enum app_state state,
 
     return 0;
 }
+
+//system check go sleep is ok
+static uint8_t app_idle_query(void)
+{
+    return !idle_is_active;
+}
+
+REGISTER_LP_TARGET(app_idle_lp_target) = {
+    .name = "app_idle_deal",
+    .is_idle = app_idle_query,
+};
 
 static const struct application_operation app_idle_ops = {
     .state_machine  = idle_state_machine,

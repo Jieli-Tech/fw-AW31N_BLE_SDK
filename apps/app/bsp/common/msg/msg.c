@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include "config.h"
 #include "power_interface.h"
+#include "app_config.h"
 
 /* #define LOG_TAG_CONST       NORM */
 #define LOG_TAG_CONST       OFF
@@ -80,6 +81,15 @@ NOT_KEEP_RAM
 static u32 msg_pool[MAX_POOL];
 /* static u32 msg_test_num; */
 
+#define  MSG_BUF_BUSY_BIT    BIT(0)
+#define  MSG_EVENT_BUSY_BIT  BIT(1)
+static   u8 msg_busy_state; //记录msg的状态
+
+#ifdef CONFIG_DEBUG_ENABLE
+static u16 msg_remain_min = (MAX_POOL << 2);
+#define msg_cbuf_remain()     (msg_cbuf.total_len - cbuf_get_data_size(&msg_cbuf))
+#endif
+
 void clear_one_event(u32 event)
 {
     if (event >= ARRAY_SIZE(event2msg)) {
@@ -91,6 +101,8 @@ void clear_one_event(u32 event)
     OS_EXIT_CRITICAL();
 }
 
+
+_NOINLINE_
 static u32 get_event(void)
 {
     CPU_SR_ALLOC();
@@ -139,6 +151,7 @@ bool has_sys_event(void)
     return FALSE;
 }
 
+_NOINLINE_
 int get_msg_phy(int len, int *msg, bool idle)
 {
     u32 param = 0;
@@ -157,9 +170,8 @@ int get_msg_phy(int len, int *msg, bool idle)
         /* log_info(" gm a 0x%x\n",param); */
         /*get no msg,cpu enter idle.why do this? TODO*/
         /* __builtin_pi32_idle(); */
-        if (idle) {
-            __asm__ volatile("idle");
-        }
+
+        msg_busy_state &= (~MSG_BUF_BUSY_BIT);
         msg[0] = NO_MSG;
         return MSG_NO_MSG;
     }
@@ -199,7 +211,9 @@ int get_msg_phy(int len, int *msg, bool idle)
     return MSG_NO_ERROR;
 }
 
-int get_msg(int len, int *msg)
+
+_NOINLINE_
+static int get_msg_sub(int len, int *msg)
 {
     /* u32 param = 0; */
     /* u16 *t_msg = (u16 *)&param; */
@@ -215,10 +229,21 @@ int get_msg(int len, int *msg)
         //log_info("event_mag %d\n ", msg[0]);
         OS_EXIT_CRITICAL();
         return MSG_NO_ERROR;
+    } else {
+        msg_busy_state &= (~MSG_EVENT_BUSY_BIT);
     }
     OS_EXIT_CRITICAL();
 
     return get_msg_phy(len, msg, 1);
+}
+
+int get_msg(int len, int *msg)
+{
+    if (!msg_busy_state) {
+        msg[0] = NO_MSG;
+        return MSG_NO_MSG;
+    }
+    return get_msg_sub(len, msg);
 }
 
 int post_event(int event)
@@ -230,6 +255,7 @@ int post_event(int event)
     /* log_info(">>> %d evenr post : 0x%x\n", msg_test_num++, event); */
     OS_ENTER_CRITICAL();
     event_buf[event / 32] |= BIT(event % 32);
+    msg_busy_state |= MSG_EVENT_BUSY_BIT;
     OS_EXIT_CRITICAL();
     return MSG_NO_ERROR;
 }
@@ -271,8 +297,21 @@ int post_msg(int argc, ...)
         cbuf_write(&msg_cbuf, &ops_ptr, sizeof(void *));
     }
     va_end(argptr);
+#ifdef CONFIG_DEBUG_ENABLE
+    if (msg_remain_min > msg_cbuf_remain()) {
+        msg_remain_min = msg_cbuf_remain();
+    }
+#endif
+    msg_busy_state |= MSG_BUF_BUSY_BIT;
     OS_EXIT_CRITICAL();
     return MSG_NO_ERROR;
+}
+
+void msg_debug_info(void)
+{
+#ifdef CONFIG_DEBUG_ENABLE
+    printf("msg_remain_min= %04x", msg_remain_min);
+#endif
 }
 
 void clear_all_message(void)
@@ -287,21 +326,14 @@ void message_init()
     memset(event_buf, 0, sizeof(event_buf));
     cbuf_init(&msg_cbuf, msg_pool, sizeof(msg_pool));
     //cbuf_clear(&msg_cbuf);
+    msg_busy_state = 0;
     OS_EXIT_CRITICAL();
 }
 
 //entern low_power controller
 static u8 msg_lowpower_idle_query(void)
 {
-    u8 is_idle;
-    if (get_event() != NO_EVENT) {
-        is_idle = 0;
-    } else if (cbuf_get_data_size(&msg_cbuf)) {
-        is_idle = 0;
-    } else {
-        is_idle = 1;
-    }
-    return is_idle;
+    return !msg_busy_state;
 }
 
 REGISTER_LP_TARGET(msg_lowpower_target) = {

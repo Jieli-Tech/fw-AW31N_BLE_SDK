@@ -63,8 +63,17 @@ void btstack_ble_start_before_init(const ble_init_cfg_t *cfg, int param)
     u8 tmp_ble_addr[6];
 
     if (TCFG_NORMAL_SET_DUT_MODE || TCFG_NORMAL_SET_DUT_MODE_API || BT_MODE_IS(BT_BQB) || BT_MODE_IS(BT_FCC) || BT_MODE_IS(BT_FRE)) {
-        //bt test mode
-        //clk_set("sfc", 64000000);
+        //bt test mode, 提高sys\lsb\sfc时钟频率
+        log_info("dut clock sys 128M, sfc 64M.");
+
+        clk_set("sys", 128000000);
+
+        clock_set_sfc_max_freq(64000000);
+        clk_set("sfc", 64000000);
+
+        //dut模式下重新配置bt_pll_para
+        uint32_t sys_clk =  clk_get("sys");
+        bt_pll_para(TCFG_CLOCK_OSC_HZ, sys_clk, 0, 0);
 
         if (TCFG_NORMAL_SET_DUT_MODE) {
             user_sele_dut_mode(SET_DUT_MODE);//设置dut mode
@@ -200,19 +209,23 @@ int bt_comm_ble_status_event_handler(struct bt_event *bt)
 /*************************************************************************************************/
 int bt_comm_ble_hci_event_handler(struct bt_event *bt)
 {
+    static u8 testbox_vendor_connect;
     if (bt->event == HCI_EVENT_VENDOR_REMOTE_TEST) {
         log_info("TEST_BOX:%d", bt->value);
         switch (bt->value) {
         case VENDOR_TEST_DISCONNECTED:
-            //TODO
-            /* set_remote_test_flag(0); */
-            log_info("clear_test_box_flag");
-            /* cpu_reset(); */
-            system_reset(BT_FLAG);
-            return 0;
+            if (testbox_vendor_connect) {
+                testbox_vendor_connect = 0;
+                /* set_remote_test_flag(0); */
+                log_info("clear_test_box_flag");
+                /* cpu_reset(); */
+                system_reset(BT_FLAG);
+                return 0;
+            }
             break;
 
         case VENDOR_TEST_LEGACY_CONNECTED_BY_BLE:
+            testbox_vendor_connect = 1;
             break;
 
         default:

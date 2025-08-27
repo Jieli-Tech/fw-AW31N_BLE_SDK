@@ -20,8 +20,9 @@ ${OBJCOPY} -O binary -j .lowpower_overlay $1.elf  lowpower_overlay.bin
 ${OBJCOPY} -O binary -j .update_overlay $1.elf  update_overlay.bin
 ${OBJDUMP} -section-headers  $1.elf
 cat $1.bin data.bin lowpower_overlay.bin update_overlay.bin > app.bin
-
+//免晶振需要使用lrc版本的uboot
+//cp uboot_no_ota_lrc.boot uboot.boot
 /* #include "app_config.h" */
 //host-client -project ${NICKNAME} -mode flash_debug -f app.bin $1.elf isd_config.ini uboot.boot bd49loader.bin
 /* host-client -project ${NICKNAME} -mode flash_debug -f app.bin $1.elf uboot.boot uboot.boot_debug bd49loader.bin  bd49loader.uart */
-host-client -project ${NICKNAME} -mode flash_debug -f app.bin $1.elf ota*.bin isd_config.ini *.boot *.boot_debug
+host-client -project ${NICKNAME} -mode flash_debug -f app.bin $1.elf ota*.bin isd_config.ini *.boot *.boot_debug flash_params.bin

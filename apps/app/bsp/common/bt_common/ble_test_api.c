@@ -172,6 +172,10 @@ int ble_dut_test_end(void)
 
 void ble_standard_dut_test_init(void)
 {
+    if (bt_test_status) {
+        log_info("dut test have inited, not to init");
+        return;
+    }
     log_info("%s\n", __FUNCTION__);
     bt_test_status = 1;
     ble_dut_mode_init();
@@ -181,12 +185,14 @@ void ble_standard_dut_test_init(void)
 
 void ble_standard_dut_test_close(void)
 {
-    log_info("%s\n", __FUNCTION__);
-    ble_dut_test_end();
-    ble_dut_mode_exit();
-    const hci_transport_t *p_uart_trans = hci_transport_uart_instance();
-    p_uart_trans->close();
-    bt_test_status = 0;
+    if (bt_test_status) {
+        log_info("%s\n", __FUNCTION__);
+        ble_dut_test_end();
+        ble_dut_mode_exit();
+        const hci_transport_t *p_uart_trans = hci_transport_uart_instance();
+        p_uart_trans->close();
+        bt_test_status = 0;
+    }
 }
 
 void ble_dut_mode_key_handle(u8 type, u8 key_val)

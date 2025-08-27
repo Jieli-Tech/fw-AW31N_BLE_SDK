@@ -116,6 +116,7 @@ typedef struct _UPDATA_PARM {
 enum EXT_ARG_TYPE {
     EXT_LDO_TRIM_RES = 0,
     EXT_JUMP_FLAG,
+    EXT_MUTIL_UPDATE_NAME = 0x8,
     EXT_TYPE_MAX = 0xff,
 };
 

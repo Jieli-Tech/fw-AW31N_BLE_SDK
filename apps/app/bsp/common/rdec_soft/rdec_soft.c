@@ -2,7 +2,7 @@
 #include "spinlock.h"
 #include "gpio.h"
 /* #include "gpadc.h" */
-#include "adc_api.h"
+#include "gpadc.h"
 #include "gptimer.h"
 #include "clock.h"
 

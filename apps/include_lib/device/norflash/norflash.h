@@ -8,7 +8,7 @@
 #include "gpio.h"
 #include "device_drive.h"
 #include "malloc.h"
-#include "app_config.h"
+/* #include "app_config.h" */
 #include "tick_timer_driver.h"
 //#include "ioctl.h"
 //#include "config.h"
@@ -122,6 +122,7 @@ struct norflash_dev_platform_data {
 extern const struct device_operations norflash_dev_ops;
 extern const struct device_operations norfs_dev_ops;
 
+u32 syscfg_read_otp(u32 id, u8 *buf, u32 len);
 void _norflash_power_down();
 void _norflash_release_power_down();
 #endif

@@ -56,6 +56,7 @@ static void usb_device_hold(const usb_dev usb_id)
 
 int usb_device_mode(const usb_dev usb_id, const u32 class)
 {
+    log_info("%s[class:0x%x]", __func__, class);
     /* usb_device_set_class(CLASS_CONFIG); */
     u8 class_index = 0;
     if (class == 0) {
@@ -164,7 +165,7 @@ int usb_device_mode(const usb_dev usb_id, const u32 class)
 
     usb_device_init(usb_id);
     /* #if (USB_DEVICE_CLASS_CONFIG & IAP_CLASS) */
-    /*     user_setup_filter_install(usb_id2device(usb_id)); */
+    user_setup_filter_install(usb_id2device(usb_id));
     /* #endif */
     return 0;
 }
